@@ -62,7 +62,7 @@ def menu():
         print("1. Ver tareas")
         print("2. Agregar tarea")
         print("3. Eliminar tarea")
-        print("4. Salir")
+        print("4. Salir-Ahora")
 
         opcion = input("Seleccione una opción: ")
 
@@ -81,3 +81,9 @@ def menu():
 
 if __name__ == "__main__":
     menu()
+
+
+
+
+
+#ASDASD
