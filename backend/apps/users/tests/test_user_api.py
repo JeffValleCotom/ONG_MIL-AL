@@ -21,6 +21,14 @@ class UserAPITests(APITestCase):
             password="TesterSeguro123!",
         )
 
+        administrator_role = Group.objects.get(
+            name="ADMINISTRADOR"
+        )
+
+        self.authenticated_user.groups.add(
+            administrator_role
+        )
+
         self.client.force_authenticate(
             user=self.authenticated_user
         )
@@ -263,6 +271,14 @@ class UserRoleAssignmentAPITests(APITestCase):
             password="TesterSeguro123!",
         )
 
+        administrator_role = Group.objects.get(
+            name="ADMINISTRADOR"
+        )
+
+        self.authenticated_user.groups.add(
+        administrator_role
+        )
+
         self.target_user = User.objects.create_user(
             username="usuario_roles_test",
             password="RolesSeguro123!",
@@ -462,4 +478,318 @@ class UserRoleAssignmentAPITests(APITestCase):
         self.assertEqual(
             self.target_user.groups.count(),
             0,
+        )
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class UserRolePermissionTests(APITestCase):
+    """
+    Pruebas de autorización por rol para TASK-05.
+    """
+
+    NON_ADMIN_ROLES = (
+        "DOCENTE",
+        "PSICOLOGO",
+        "TERAPEUTA",
+        "RESPONSABLE_INSTITUCIONAL",
+    )
+
+    def create_user_with_role(self, username, role_name):
+        user = User.objects.create_user(
+            username=username,
+            password="PermisoSeguro123!",
+        )
+
+        user.groups.add(
+            Group.objects.get(name=role_name)
+        )
+
+        return user
+
+    def test_user_without_role_cannot_list_users(self):
+        user = User.objects.create_user(
+            username="usuario_sin_rol",
+            password="SinRolSeguro123!",
+        )
+
+        self.client.force_authenticate(user=user)
+
+        response = self.client.get(
+            reverse("user-list")
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+    def test_non_administrator_roles_cannot_list_users(self):
+        for role_name in self.NON_ADMIN_ROLES:
+            with self.subTest(role=role_name):
+                user = self.create_user_with_role(
+                    username=f"list_{role_name.lower()}",
+                    role_name=role_name,
+                )
+
+                self.client.force_authenticate(user=user)
+
+                response = self.client.get(
+                    reverse("user-list")
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_403_FORBIDDEN,
+                )
+
+    def test_non_administrator_roles_cannot_create_users(self):
+        for role_name in self.NON_ADMIN_ROLES:
+            with self.subTest(role=role_name):
+                user = self.create_user_with_role(
+                    username=f"create_{role_name.lower()}",
+                    role_name=role_name,
+                )
+
+                self.client.force_authenticate(user=user)
+
+                response = self.client.post(
+                    reverse("user-list"),
+                    {
+                        "username": f"nuevo_{role_name.lower()}",
+                        "password": "NuevoSeguro123!",
+                    },
+                    format="json",
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_403_FORBIDDEN,
+                )
+
+                self.assertFalse(
+                    User.objects.filter(
+                        username=f"nuevo_{role_name.lower()}"
+                    ).exists()
+                )
+
+    def test_non_administrator_roles_cannot_modify_user(self):
+        target = User.objects.create_user(
+            username="objetivo_modificacion",
+            password="ObjetivoSeguro123!",
+            first_name="Original",
+        )
+
+        for role_name in self.NON_ADMIN_ROLES:
+            with self.subTest(role=role_name):
+                user = self.create_user_with_role(
+                    username=f"modify_{role_name.lower()}",
+                    role_name=role_name,
+                )
+
+                self.client.force_authenticate(user=user)
+
+                response = self.client.patch(
+                    reverse(
+                        "user-detail",
+                        args=[target.id],
+                    ),
+                    {
+                        "first_name": "Modificado",
+                    },
+                    format="json",
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_403_FORBIDDEN,
+                )
+
+                target.refresh_from_db()
+
+                self.assertEqual(
+                    target.first_name,
+                    "Original",
+                )
+
+    def test_non_administrator_roles_cannot_change_user_status(self):
+        active_target = User.objects.create_user(
+            username="objetivo_desactivar",
+            password="ObjetivoSeguro123!",
+        )
+
+        inactive_target = User.objects.create_user(
+            username="objetivo_activar",
+            password="ObjetivoSeguro123!",
+            is_active=False,
+        )
+
+        for role_name in self.NON_ADMIN_ROLES:
+            with self.subTest(role=role_name):
+                user = self.create_user_with_role(
+                    username=f"status_{role_name.lower()}",
+                    role_name=role_name,
+                )
+
+                self.client.force_authenticate(user=user)
+
+                deactivate_response = self.client.patch(
+                    reverse(
+                        "user-deactivate",
+                        args=[active_target.id],
+                    ),
+                    {},
+                    format="json",
+                )
+
+                activate_response = self.client.patch(
+                    reverse(
+                        "user-activate",
+                        args=[inactive_target.id],
+                    ),
+                    {},
+                    format="json",
+                )
+
+                self.assertEqual(
+                    deactivate_response.status_code,
+                    status.HTTP_403_FORBIDDEN,
+                )
+
+                self.assertEqual(
+                    activate_response.status_code,
+                    status.HTTP_403_FORBIDDEN,
+                )
+
+                active_target.refresh_from_db()
+                inactive_target.refresh_from_db()
+
+                self.assertTrue(active_target.is_active)
+                self.assertFalse(inactive_target.is_active)
+
+    def test_non_administrator_roles_cannot_assign_roles(self):
+        target = User.objects.create_user(
+            username="objetivo_roles",
+            password="ObjetivoSeguro123!",
+        )
+
+        for role_name in self.NON_ADMIN_ROLES:
+            with self.subTest(role=role_name):
+                user = self.create_user_with_role(
+                    username=f"roles_{role_name.lower()}",
+                    role_name=role_name,
+                )
+
+                self.client.force_authenticate(user=user)
+
+                response = self.client.patch(
+                    reverse(
+                        "user-roles",
+                        args=[target.id],
+                    ),
+                    {
+                        "roles": ["PSICOLOGO"]
+                    },
+                    format="json",
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_403_FORBIDDEN,
+                )
+
+                self.assertEqual(
+                    target.groups.count(),
+                    0,
+                )
+
+    def test_inactive_administrator_cannot_access_user_management(self):
+        administrator = self.create_user_with_role(
+            username="administrador_inactivo",
+            role_name="ADMINISTRADOR",
+        )
+
+        administrator.is_active = False
+        administrator.save(update_fields=["is_active"])
+
+        self.client.force_authenticate(
+            user=administrator
+        )
+
+        response = self.client.get(
+            reverse("user-list")
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+    def test_administrator_cannot_deactivate_self(self):
+        administrator = self.create_user_with_role(
+            username="administrador_autodesactivar",
+            role_name="ADMINISTRADOR",
+        )
+
+        self.client.force_authenticate(
+            user=administrator
+        )
+
+        response = self.client.patch(
+            reverse(
+                "user-deactivate",
+                args=[administrator.id],
+            ),
+            {},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        administrator.refresh_from_db()
+
+        self.assertTrue(administrator.is_active)
+
+
+    def test_administrator_cannot_remove_own_administrator_role(self):
+        administrator = self.create_user_with_role(
+            username="administrador_autorol",
+            role_name="ADMINISTRADOR",
+        )
+
+        self.client.force_authenticate(
+            user=administrator
+        )
+
+        response = self.client.patch(
+            reverse(
+                "user-roles",
+                args=[administrator.id],
+            ),
+            {
+                "roles": [
+                    "DOCENTE",
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        administrator.refresh_from_db()
+
+        roles = set(
+            administrator.groups.values_list(
+                "name",
+                flat=True,
+            )
+        )
+
+        self.assertIn(
+            "ADMINISTRADOR",
+            roles,
         )
