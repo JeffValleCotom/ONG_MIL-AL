@@ -3,7 +3,7 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-
+from django.contrib.auth.models import Group
 
 
 User = get_user_model()
@@ -248,4 +248,218 @@ class UserAPITests(APITestCase):
         self.assertIn(
             "password",
             response.data,
+        )
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class UserRoleAssignmentAPITests(APITestCase):
+    """
+    Pruebas de regresión para la asignación de roles
+    correspondiente a TASK-04.
+    """
+
+    def setUp(self):
+        self.authenticated_user = User.objects.create_user(
+            username="role_api_tester",
+            password="TesterSeguro123!",
+        )
+
+        self.target_user = User.objects.create_user(
+            username="usuario_roles_test",
+            password="RolesSeguro123!",
+        )
+
+        self.client.force_authenticate(
+            user=self.authenticated_user
+        )
+
+    def test_initial_institutional_roles_exist(self):
+        expected_roles = {
+            "ADMINISTRADOR",
+            "DOCENTE",
+            "PSICOLOGO",
+            "TERAPEUTA",
+            "RESPONSABLE_INSTITUCIONAL",
+        }
+
+        existing_roles = set(
+            Group.objects.values_list(
+                "name",
+                flat=True,
+            )
+        )
+
+        self.assertTrue(
+            expected_roles.issubset(existing_roles)
+        )
+
+    def test_assign_multiple_roles_to_user(self):
+        response = self.client.patch(
+            reverse(
+                "user-roles",
+                args=[self.target_user.id],
+            ),
+            {
+                "roles": [
+                    "DOCENTE",
+                    "TERAPEUTA",
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.target_user.refresh_from_db()
+
+        roles = set(
+            self.target_user.groups.values_list(
+                "name",
+                flat=True,
+            )
+        )
+
+        self.assertEqual(
+            roles,
+            {"DOCENTE", "TERAPEUTA"},
+        )
+
+    def test_get_user_roles(self):
+        self.target_user.groups.add(
+            Group.objects.get(name="DOCENTE"),
+            Group.objects.get(name="PSICOLOGO"),
+        )
+
+        response = self.client.get(
+            reverse(
+                "user-roles",
+                args=[self.target_user.id],
+            )
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            set(response.data["roles"]),
+            {"DOCENTE", "PSICOLOGO"},
+        )
+
+    def test_replace_existing_roles(self):
+        self.target_user.groups.add(
+            Group.objects.get(name="DOCENTE"),
+            Group.objects.get(name="TERAPEUTA"),
+        )
+
+        response = self.client.patch(
+            reverse(
+                "user-roles",
+                args=[self.target_user.id],
+            ),
+            {
+                "roles": [
+                    "PSICOLOGO",
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.target_user.refresh_from_db()
+
+        roles = list(
+            self.target_user.groups.values_list(
+                "name",
+                flat=True,
+            )
+        )
+
+        self.assertEqual(
+            roles,
+            ["PSICOLOGO"],
+        )
+
+    def test_invalid_role_is_rejected(self):
+        response = self.client.patch(
+            reverse(
+                "user-roles",
+                args=[self.target_user.id],
+            ),
+            {
+                "roles": [
+                    "SUPER_ADMIN_INVENTADO",
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.assertEqual(
+            self.target_user.groups.count(),
+            0,
+        )
+
+    def test_duplicate_roles_are_rejected(self):
+        response = self.client.patch(
+            reverse(
+                "user-roles",
+                args=[self.target_user.id],
+            ),
+            {
+                "roles": [
+                    "DOCENTE",
+                    "DOCENTE",
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.assertEqual(
+            self.target_user.groups.count(),
+            0,
+        )
+
+    def test_roles_can_be_cleared(self):
+        self.target_user.groups.add(
+            Group.objects.get(name="DOCENTE")
+        )
+
+        response = self.client.patch(
+            reverse(
+                "user-roles",
+                args=[self.target_user.id],
+            ),
+            {
+                "roles": []
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.target_user.refresh_from_db()
+
+        self.assertEqual(
+            self.target_user.groups.count(),
+            0,
         )
