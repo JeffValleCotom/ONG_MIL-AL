@@ -3,7 +3,7 @@ from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .serializers import UserRoleAssignmentSerializer, UserSerializer
-
+from .permissions import IsAdministratorRole
 
 User = get_user_model()
 
@@ -17,7 +17,10 @@ class UserViewSet(
 ):
     queryset = User.objects.all().order_by("id")
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [
+    permissions.IsAuthenticated,
+    IsAdministratorRole,
+    ]
 
     http_method_names = [
         "get",
@@ -63,6 +66,17 @@ class UserViewSet(
     def deactivate(self, request, pk=None):
         user = self.get_object()
 
+        if user.pk == request.user.pk:
+            return Response(
+                {
+                    "detail": (
+                        "Un administrador no puede desactivar "
+                        "su propia cuenta."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if not user.is_active:
             return Response(
                 {
@@ -102,6 +116,22 @@ class UserViewSet(
                     ),
                 },
                 status=status.HTTP_200_OK,
+            )
+
+        requested_roles = request.data.get("roles", [])
+
+        if (
+            user.pk == request.user.pk
+            and "ADMINISTRADOR" not in requested_roles
+        ):
+            return Response(
+                {
+                    "detail": (
+                        "Un administrador no puede retirar "
+                        "su propio rol ADMINISTRADOR."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         serializer = UserRoleAssignmentSerializer(
