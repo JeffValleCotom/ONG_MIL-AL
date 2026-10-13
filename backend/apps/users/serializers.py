@@ -1,8 +1,8 @@
-from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from django.contrib.auth.models import Group
 from .roles import INSTITUTIONAL_ROLES
+from django.contrib.auth import authenticate, get_user_model
 
 
 User = get_user_model()
@@ -124,3 +124,38 @@ class UserRoleAssignmentSerializer(serializers.Serializer):
         instance.groups.set(groups)
 
         return instance
+
+class LoginSerializer(serializers.Serializer):
+    """
+    Valida las credenciales de un usuario institucional.
+
+    Esta clase únicamente verifica usuario y contraseña.
+    La creación de la sesión corresponde a TASK-10.
+    """
+
+    username = serializers.CharField(
+        max_length=150,
+        required=True,
+    )
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        style={"input_type": "password"},
+    )
+
+    def validate(self, attrs):
+        user = authenticate(
+            request=self.context.get("request"),
+            username=attrs["username"],
+            password=attrs["password"],
+        )
+
+        if user is None:
+            raise serializers.ValidationError(
+                "Credenciales inválidas."
+            )
+
+        return {
+            "user": user,
+        }
