@@ -1,0 +1,129 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background:
+    linear-gradient(
+      135deg,
+      #eff6ff 0%,
+      #f8fafc 50%,
+      #ecfdf5 100%
+    );
+}
+
+.login-card {
+  width: min(100%, 440px);
+  padding: 2rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgb(15 23 42 / 10%);
+}
+
+.login-card__header {
+  margin-bottom: 2rem;
+}
+
+.login-card__eyebrow {
+  margin: 0 0 0.5rem;
+  color: #1d4ed8;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.login-card__header h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 2rem;
+}
+
+.login-card__header p {
+  margin: 0.75rem 0 0;
+  color: #64748b;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.login-form .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.login-form .form-field label {
+  color: #334155;
+  font-weight: 600;
+}
+
+.login-form .form-field input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.8rem;
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.login-form .form-field input:focus {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+  border-color: #2563eb;
+}
+
+.login-form__error {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.login-button {
+  width: 100%;
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.8rem 1rem;
+  color: #ffffff;
+  background: #1d4ed8;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.login-button:hover:not(:disabled) {
+  background: #1e40af;
+}
+
+.login-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.login-card__footer {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.login-card__footer p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .login-page {
+    padding: 1rem;
+  }
+
+  .login-card {
+    padding: 1.5rem;
+  }
+}

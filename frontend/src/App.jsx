@@ -1,8 +1,7 @@
-import './components/Modal.css'
-import UserManagementPage from './features/users/pages/UserManagementPage'
+import LoginPage from './features/auth/pages/LoginPage'
 
 function App() {
-  return <UserManagementPage />
+  return <LoginPage />
 }
 
 export default App
