@@ -1,4 +1,7 @@
-from django.contrib.auth import login as django_login
+from django.contrib.auth import (
+    login as django_login,
+    logout as django_logout,
+)
 from django.middleware.csrf import get_token
 from rest_framework import permissions, status
 from rest_framework.authentication import SessionAuthentication
@@ -80,6 +83,24 @@ class SessionView(APIView):
             {
                 "authenticated": True,
                 "user": UserSerializer(request.user).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+class LogoutView(APIView):
+    """
+    Finaliza la sesión autenticada del usuario.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        django_logout(request)
+
+        return Response(
+            {
+                "detail": "Sesión cerrada correctamente.",
             },
             status=status.HTTP_200_OK,
         )

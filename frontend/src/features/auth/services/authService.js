@@ -21,3 +21,15 @@ export async function login(credentials) {
 export async function getSession() {
   return apiRequest('/auth/session/')
 }
+
+export async function logout() {
+  const csrfToken = await getCsrfToken()
+
+  return apiRequest('/auth/logout/', {
+    method: 'POST',
+    data: {},
+    headers: {
+      'X-CSRFToken': csrfToken,
+    },
+  })
+}

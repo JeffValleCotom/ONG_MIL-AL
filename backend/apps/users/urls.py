@@ -1,9 +1,12 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-
-from .auth_views import CsrfTokenView, LoginView, SessionView
 from .views import UserViewSet
-
+from .auth_views import (
+    CsrfTokenView,
+    LoginView,
+    LogoutView,
+    SessionView,
+)
 
 router = DefaultRouter()
 
@@ -29,6 +32,12 @@ urlpatterns = [
         "auth/session/",
         SessionView.as_view(),
         name="auth-session",
+    ),
+
+    path(
+    "auth/logout/",
+    LogoutView.as_view(),
+    name="auth-logout",
     ),
 ]
 

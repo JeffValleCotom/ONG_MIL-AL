@@ -4,6 +4,7 @@ import LoginForm from '../components/LoginForm'
 import {
   getSession,
   login,
+  logout,
 } from '../services/authService'
 import './LoginPage.css'
 
@@ -13,6 +14,7 @@ function LoginPage() {
   const [error, setError] = useState('')
   const [authenticatedUser, setAuthenticatedUser] = useState(null)
   const [isCheckingSession, setIsCheckingSession] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
   let isMounted = true
@@ -74,6 +76,23 @@ function LoginPage() {
     }
   }
 
+  async function handleLogout() {
+  setIsLoggingOut(true)
+  setError('')
+
+  try {
+    await logout()
+    setAuthenticatedUser(null)
+  } catch (logoutError) {
+    setError(
+      logoutError.message ||
+        'No fue posible cerrar la sesión.'
+    )
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
   if (isCheckingSession) {
   return (
     <main className="login-page">
@@ -118,6 +137,26 @@ function LoginPage() {
             La navegación posterior a la autenticación
             se implementará en las siguientes tareas.
           </p>
+
+          {error && (
+            <div
+              className="login-form__error"
+              role="alert"
+            >
+              {error}
+            </div>
+          )}
+
+          <button
+            className="login-button"
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut
+              ? 'Cerrando sesión...'
+              : 'Cerrar sesión'}
+          </button>
         </section>
       </main>
     )
