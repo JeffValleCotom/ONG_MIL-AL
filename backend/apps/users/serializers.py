@@ -183,4 +183,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "last_login",
         ]
 
-        read_only_fields = fields
+        read_only_fields = [
+            "id",
+            "username",
+            "roles",
+            "is_active",
+            "date_joined",
+            "last_login",
+        ]
