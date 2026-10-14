@@ -188,3 +188,103 @@ class ProfileQueryTests(APITestCase):
             response.status_code,
             status.HTTP_403_FORBIDDEN,
         )
+
+    def test_profile_rejects_invalid_email(self):
+        self.client.force_login(self.user)
+        original_email = self.user.email
+
+        response = self.client.patch(
+            self.profile_url,
+            {
+                "email": "correo-invalido",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.user.refresh_from_db()
+
+        self.assertEqual(
+            self.user.email,
+            original_email,
+        )
+
+    def test_profile_rejects_first_name_over_max_length(self):
+        self.client.force_login(self.user)
+        original_first_name = self.user.first_name
+
+        response = self.client.patch(
+            self.profile_url,
+            {
+                "first_name": "A" * 151,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.user.refresh_from_db()
+
+        self.assertEqual(
+            self.user.first_name,
+            original_first_name,
+        )
+
+    def test_profile_rejects_last_name_over_max_length(self):
+        self.client.force_login(self.user)
+        original_last_name = self.user.last_name
+
+        response = self.client.patch(
+            self.profile_url,
+            {
+                "last_name": "B" * 151,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.user.refresh_from_db()
+
+        self.assertEqual(
+            self.user.last_name,
+            original_last_name,
+        )
+
+    def test_profile_trims_name_whitespace(self):
+        self.client.force_login(self.user)
+
+        response = self.client.patch(
+            self.profile_url,
+            {
+                "first_name": "  Nombre  ",
+                "last_name": "  Apellido  ",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.user.refresh_from_db()
+
+        self.assertEqual(
+            self.user.first_name,
+            "Nombre",
+        )
+        self.assertEqual(
+            self.user.last_name,
+            "Apellido",
+        )
