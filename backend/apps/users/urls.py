@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .views import UserViewSet
+from .profile_views import ProfileView
 from .auth_views import (
     CsrfTokenView,
     LoginView,
@@ -38,6 +39,12 @@ urlpatterns = [
     "auth/logout/",
     LogoutView.as_view(),
     name="auth-logout",
+    ),
+
+    path(
+    "profile/",
+    ProfileView.as_view(),
+    name="user-profile",
     ),
 ]
 
