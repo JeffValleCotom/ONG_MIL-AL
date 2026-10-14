@@ -161,6 +161,23 @@ class LoginSerializer(serializers.Serializer):
         }
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(
+        required=False,
+        allow_blank=True,
+        max_length=254,
+    )
+    first_name = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=150,
+        trim_whitespace=True,
+    )
+    last_name = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=150,
+        trim_whitespace=True,
+    )
 
     roles = serializers.SlugRelatedField(
         source="groups",
