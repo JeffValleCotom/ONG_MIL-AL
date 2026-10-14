@@ -105,3 +105,86 @@ class ProfileQueryTests(APITestCase):
             response.status_code,
             status.HTTP_403_FORBIDDEN,
         )
+
+    def test_authenticated_user_can_update_own_profile(self):
+        self.client.force_login(self.user)
+
+        response = self.client.patch(
+            self.profile_url,
+            {
+                "email": "perfil.actualizado@test.com",
+                "first_name": "Nombre actualizado",
+                "last_name": "Apellido actualizado",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.user.refresh_from_db()
+
+        self.assertEqual(
+            self.user.email,
+            "perfil.actualizado@test.com",
+        )
+        self.assertEqual(
+            self.user.first_name,
+            "Nombre actualizado",
+        )
+        self.assertEqual(
+            self.user.last_name,
+            "Apellido actualizado",
+        )
+
+    def test_profile_update_only_affects_authenticated_user(self):
+        other_user = User.objects.create_user(
+            username="otro_perfil",
+            email="otro@test.com",
+            first_name="Otro",
+            last_name="Usuario",
+            password="MilalOther123!",
+        )
+
+        self.client.force_login(self.user)
+
+        response = self.client.patch(
+            self.profile_url,
+            {
+                "first_name": "Actualizado",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.user.refresh_from_db()
+        other_user.refresh_from_db()
+
+        self.assertEqual(
+            self.user.first_name,
+            "Actualizado",
+        )
+        self.assertEqual(
+            other_user.first_name,
+            "Otro",
+        )
+
+    def test_unauthenticated_user_cannot_update_profile(self):
+        response = self.client.patch(
+            self.profile_url,
+            {
+                "first_name": "No permitido",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
