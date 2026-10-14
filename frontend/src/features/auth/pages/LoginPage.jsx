@@ -9,7 +9,11 @@ import {
 import './LoginPage.css'
 
 
-function LoginPage() {
+function LoginPage({
+  onAuthenticated,
+  onLoggedOut,
+}) {
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [authenticatedUser, setAuthenticatedUser] = useState(null)
@@ -29,6 +33,7 @@ function LoginPage() {
         session.user
       ) {
         setAuthenticatedUser(session.user)
+        onAuthenticated?.(session.user)
       }
     } catch {
       if (isMounted) {
@@ -48,7 +53,7 @@ function LoginPage() {
   return () => {
     isMounted = false
   }
-}, [])
+}, [onAuthenticated])
 
   async function handleLoginSubmit(credentials) {
     setIsSubmitting(true)
@@ -66,6 +71,7 @@ function LoginPage() {
       }
 
       setAuthenticatedUser(session.user)
+      onAuthenticated?.(session.user)
     } catch (loginError) {
       setError(
         loginError.message ||
@@ -83,6 +89,7 @@ function LoginPage() {
   try {
     await logout()
     setAuthenticatedUser(null)
+    onLoggedOut?.()
   } catch (logoutError) {
     setError(
       logoutError.message ||

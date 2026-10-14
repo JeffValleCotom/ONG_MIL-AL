@@ -1,4 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import {
+  activateUser,
+  createUser,
+  deactivateUser,
+  getUsers,
+  updateUser,
+  updateUserRoles,
+} from '../services/userService'
 
 import Modal from '../../../components/Modal'
 import UserForm from '../components/UserForm'
@@ -7,41 +15,45 @@ import './UserManagementPage.css'
 import UserRoleForm from '../components/UserRoleForm'
 import ConfirmDialog from '../../../components/ConfirmDialog'
 
-const sampleUsers = [
-  {
-    id: 1,
-    username: 'admin',
-    email: 'admin@milal.org.gt',
-    first_name: 'Administrador',
-    last_name: 'MIL-AL',
-    roles: ['ADMINISTRADOR'],
-    is_active: true,
-  },
-  {
-    id: 2,
-    username: 'docente',
-    email: 'docente@milal.org.gt',
-    first_name: 'Usuario',
-    last_name: 'Docente',
-    roles: ['DOCENTE'],
-    is_active: true,
-  },
-  {
-    id: 3,
-    username: 'psicologia',
-    email: 'psicologia@milal.org.gt',
-    first_name: 'Usuario',
-    last_name: 'Psicología',
-    roles: ['PSICOLOGO'],
-    is_active: false,
-  },
-]
-
-function UserManagementPage() {
+function UserManagementPage({ onLogout }) {
+  const [users, setUsers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
   const [roleUser, setRoleUser] = useState(null)
   const [statusUser, setStatusUser] = useState(null)
+
+  useEffect(() => {
+  let isMounted = true
+
+  async function fetchUsers() {
+    try {
+      const data = await getUsers()
+
+      if (isMounted) {
+        setUsers(data)
+      }
+    } catch (loadError) {
+      if (isMounted) {
+        setError(
+          loadError.message ||
+            'No fue posible cargar los usuarios.'
+        )
+      }
+    } finally {
+      if (isMounted) {
+        setIsLoading(false)
+      }
+    }
+  }
+
+  fetchUsers()
+
+  return () => {
+    isMounted = false
+  }
+}, [])
 
   function openCreateForm() {
     setRoleUser(null)
@@ -62,9 +74,38 @@ function UserManagementPage() {
     setSelectedUser(null)
   }
 
-  function handleFormSubmit() {
+  async function handleFormSubmit(formData) {
+  setError('')
+
+  try {
+    if (selectedUser) {
+      const updateData = {
+        ...formData,
+      }
+
+      if (!updateData.password) {
+        delete updateData.password
+      }
+
+      await updateUser(
+        selectedUser.id,
+        updateData
+      )
+    } else {
+      await createUser(formData)
+    }
+
+    const updatedUsers = await getUsers()
+    setUsers(updatedUsers)
+
     closeForm()
+  } catch (submitError) {
+    setError(
+      submitError.message ||
+        'No fue posible guardar el usuario.'
+    )
   }
+}
 
   function openRoleForm(user) {
   setIsFormOpen(false)
@@ -77,24 +118,59 @@ function UserManagementPage() {
     setRoleUser(null)
   }
 
-  function handleRoleSubmit() {
-    closeRoleForm()
-  }
+  async function handleRoleSubmit(roles) {
+  setError('')
 
-  function openStatusConfirm(user) {
+  try {
+    await updateUserRoles(
+      roleUser.id,
+      roles
+    )
+
+    const updatedUsers = await getUsers()
+    setUsers(updatedUsers)
+
+    closeRoleForm()
+  } catch (roleError) {
+    setError(
+      roleError.message ||
+        'No fue posible actualizar los roles.'
+    )
+  }
+}
+
+function openStatusConfirm(user) {
   setIsFormOpen(false)
   setSelectedUser(null)
   setRoleUser(null)
   setStatusUser(user)
-  }
+}
 
-  function closeStatusConfirm() {
-    setStatusUser(null)
-  }
+function closeStatusConfirm() {
+  setStatusUser(null)
+}
 
-  function handleStatusConfirm() {
+async function handleStatusConfirm() {
+  setError('')
+
+  try {
+    if (statusUser.is_active) {
+      await deactivateUser(statusUser.id)
+    } else {
+      await activateUser(statusUser.id)
+    }
+
+    const updatedUsers = await getUsers()
+    setUsers(updatedUsers)
+
     closeStatusConfirm()
+  } catch (statusError) {
+    setError(
+      statusError.message ||
+        'No fue posible actualizar el estado del usuario.'
+    )
   }
+}
 
   return (
     <main className="users-page">
@@ -122,6 +198,13 @@ function UserManagementPage() {
         >
           Nuevo usuario
         </button>
+        <button
+          className="button button--secondary"
+          type="button"
+          onClick={onLogout}
+        >
+          Cerrar sesión
+        </button>
       </header>
 
       <section
@@ -135,17 +218,34 @@ function UserManagementPage() {
             </h2>
 
             <p>
-              {sampleUsers.length} usuarios registrados
+              {users.length} usuarios registrados
             </p>
           </div>
         </div>
 
-        <UserTable
-          users={sampleUsers}
-          onEdit={openEditForm}
-          onManageRoles={openRoleForm}
-          onToggleStatus={openStatusConfirm}
-        />
+        {error && (
+          <div
+            className="users-empty"
+            role="alert"
+          >
+            {error}
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="users-empty">
+            Cargando usuarios...
+          </div>
+        )}
+
+        {!isLoading && !error && (
+          <UserTable
+            users={users}
+            onEdit={openEditForm}
+            onManageRoles={openRoleForm}
+            onToggleStatus={openStatusConfirm}
+          />
+        )}
       </section>
 
       {isFormOpen && (
