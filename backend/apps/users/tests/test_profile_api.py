@@ -288,3 +288,97 @@ class ProfileQueryTests(APITestCase):
             self.user.last_name,
             "Apellido",
         )
+
+    def test_profile_rejects_restricted_fields(self):
+        self.client.force_login(self.user)
+
+        original_username = self.user.username
+        original_is_active = self.user.is_active
+        original_password = self.user.password
+        original_roles = set(
+            self.user.groups.values_list("name", flat=True)
+        )
+
+        restricted_data = {
+            "id": 9999,
+            "username": "usuario_modificado",
+            "roles": ["ADMINISTRADOR"],
+            "is_active": False,
+            "is_staff": True,
+            "is_superuser": True,
+            "password": "NuevaClave123!",
+            "date_joined": "2030-01-01T00:00:00Z",
+            "last_login": "2030-01-01T00:00:00Z",
+        }
+
+        response = self.client.patch(
+            self.profile_url,
+            restricted_data,
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        for field in restricted_data:
+            self.assertIn(
+                field,
+                response.data,
+            )
+
+        self.user.refresh_from_db()
+
+        self.assertEqual(
+            self.user.username,
+            original_username,
+        )
+        self.assertEqual(
+            self.user.is_active,
+            original_is_active,
+        )
+        self.assertEqual(
+            self.user.password,
+            original_password,
+        )
+
+        current_roles = set(
+            self.user.groups.values_list("name", flat=True)
+        )
+
+        self.assertEqual(
+            current_roles,
+            original_roles,
+        )
+
+    def test_restricted_field_prevents_partial_profile_update(self):
+        self.client.force_login(self.user)
+
+        original_first_name = self.user.first_name
+        original_username = self.user.username
+
+        response = self.client.patch(
+            self.profile_url,
+            {
+                "first_name": "Nombre permitido",
+                "username": "usuario_no_permitido",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.user.refresh_from_db()
+
+        self.assertEqual(
+            self.user.first_name,
+            original_first_name,
+        )
+        self.assertEqual(
+            self.user.username,
+            original_username,
+        )
