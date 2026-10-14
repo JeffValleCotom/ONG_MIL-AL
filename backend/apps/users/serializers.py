@@ -161,6 +161,18 @@ class LoginSerializer(serializers.Serializer):
         }
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    RESTRICTED_FIELDS = {
+        "id",
+        "username",
+        "roles",
+        "is_active",
+        "is_staff",
+        "is_superuser",
+        "password",
+        "date_joined",
+        "last_login",
+    }
+
     email = serializers.EmailField(
         required=False,
         allow_blank=True,
@@ -208,3 +220,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "date_joined",
             "last_login",
         ]
+
+    def validate(self, attrs):
+        restricted_fields = (
+            self.RESTRICTED_FIELDS
+            .intersection(self.initial_data.keys())
+        )
+
+        if restricted_fields:
+            raise serializers.ValidationError(
+                {
+                    field: (
+                        "Este campo no puede modificarse "
+                        "desde el perfil."
+                    )
+                    for field in sorted(restricted_fields)
+                }
+            )
+
+        return attrs
