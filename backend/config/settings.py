@@ -34,6 +34,25 @@ ALLOWED_HOSTS = [host.strip()
     if host.strip()
     ]
 
+# Password recovery and email
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    (
+        "django.core.mail.backends.console.EmailBackend"
+        if DEBUG
+        else "django.core.mail.backends.dummy.EmailBackend"
+    ),
+)
+
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL",
+    "no-reply@milal.org.gt",
+)
+
+PASSWORD_RESET_FRONTEND_URL = os.getenv(
+    "PASSWORD_RESET_FRONTEND_URL",
+    "http://localhost:5173/password-reset",
+)
 
 # Application definition
 
