@@ -6,6 +6,7 @@ from .auth_views import (
     CsrfTokenView,
     LoginView,
     LogoutView,
+    PasswordChangeView,
     SessionView,
 )
 
@@ -36,15 +37,21 @@ urlpatterns = [
     ),
 
     path(
-    "auth/logout/",
-    LogoutView.as_view(),
-    name="auth-logout",
+        "auth/password/change/",
+        PasswordChangeView.as_view(),
+        name="auth-password-change",
     ),
 
     path(
-    "profile/",
-    ProfileView.as_view(),
-    name="user-profile",
+        "auth/logout/",
+        LogoutView.as_view(),
+        name="auth-logout",
+    ),
+
+    path(
+        "profile/",
+        ProfileView.as_view(),
+        name="user-profile",
     ),
 ]
 
