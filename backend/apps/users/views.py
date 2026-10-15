@@ -3,7 +3,7 @@ from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .serializers import UserRoleAssignmentSerializer, UserSerializer
-from .permissions import IsAdministratorRole
+from .permissions import HasPlatformPermission
 
 User = get_user_model()
 
@@ -19,7 +19,7 @@ class UserViewSet(
     serializer_class = UserSerializer
     permission_classes = [
     permissions.IsAuthenticated,
-    IsAdministratorRole,
+    HasPlatformPermission,
     ]
 
     http_method_names = [
@@ -150,3 +150,20 @@ class UserViewSet(
             },
             status=status.HTTP_200_OK,
         )
+
+    required_permission_map = {
+        "list": "manage_users",
+        "retrieve": "manage_users",
+        "create": "manage_users",
+        "update": "manage_users",
+        "partial_update": "manage_users",
+        "activate": "manage_users",
+        "deactivate": "manage_users",
+        "roles": "manage_roles",
+    }
+
+    def get_required_permission(self):
+        return self.required_permission_map.get(
+            self.action
+        )
+    
