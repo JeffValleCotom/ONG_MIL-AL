@@ -1,14 +1,18 @@
 from django.contrib.auth import (
     login as django_login,
     logout as django_logout,
+    update_session_auth_hash,
 )
 from django.middleware.csrf import get_token
 from rest_framework import permissions, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from .serializers import LoginSerializer, UserSerializer
+from .serializers import (
+    LoginSerializer,
+    PasswordChangeSerializer,
+    UserSerializer,
+)
 
 
 class CsrfTokenView(APIView):
@@ -86,6 +90,50 @@ class SessionView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class PasswordChangeView(APIView):
+    """
+    Permite al usuario autenticado cambiar su propia contraseña.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        user = request.user
+
+        user.set_password(
+            serializer.validated_data[
+                "new_password"
+            ]
+        )
+        user.save(
+            update_fields=["password"]
+        )
+
+        update_session_auth_hash(
+            request,
+            user,
+        )
+
+        return Response(
+            {
+                "detail": (
+                    "Contraseña actualizada correctamente."
+                )
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 class LogoutView(APIView):
     """

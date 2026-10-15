@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import Group
 from .roles import INSTITUTIONAL_ROLES
 from django.contrib.auth import authenticate, get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 
 User = get_user_model()
@@ -52,6 +53,22 @@ class UserSerializer(serializers.ModelSerializer):
             "last_login",
         ]
 
+    def validate(self, attrs):
+        if (
+            self.instance is not None
+            and "password" in self.initial_data
+        ):
+            raise serializers.ValidationError(
+                {
+                    "password": (
+                        "La contraseña no puede modificarse "
+                        "desde la gestión administrativa de usuarios."
+                    )
+                }
+            )
+
+        return attrs
+
     def create(self, validated_data):
         """
         Crea un usuario almacenando la contraseña
@@ -67,18 +84,13 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """
-        Actualiza información del usuario.
+        Actualiza información administrativa del usuario.
 
-        En una actualización parcial, la contraseña es
-        opcional. Si se proporciona, se almacena de forma segura.
+        La contraseña debe modificarse únicamente mediante
+        el flujo específico de cambio de contraseña.
         """
-        password = validated_data.pop("password", None)
-
         for attribute, value in validated_data.items():
             setattr(instance, attribute, value)
-
-        if password:
-            instance.set_password(password)
 
         instance.save()
 
@@ -125,6 +137,7 @@ class UserRoleAssignmentSerializer(serializers.Serializer):
 
         return instance
 
+
 class LoginSerializer(serializers.Serializer):
     """
     Valida las credenciales de un usuario institucional.
@@ -159,6 +172,74 @@ class LoginSerializer(serializers.Serializer):
         return {
             "user": user,
         }
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """
+    Valida el cambio de contraseña del usuario autenticado.
+    """
+
+    current_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        style={"input_type": "password"},
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        style={"input_type": "password"},
+    )
+    new_password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        style={"input_type": "password"},
+    )
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+
+        if not user.check_password(
+            attrs["current_password"]
+        ):
+            raise serializers.ValidationError(
+                {
+                    "current_password": (
+                        "La contraseña actual es incorrecta."
+                    )
+                }
+            )
+
+        if (
+            attrs["new_password"]
+            != attrs["new_password_confirm"]
+        ):
+            raise serializers.ValidationError(
+                {
+                    "new_password_confirm": (
+                        "Las nuevas contraseñas no coinciden."
+                    )
+                }
+            )
+
+        try:
+            validate_password(
+                attrs["new_password"],
+                user=user,
+            )
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(
+                {
+                    "new_password": list(
+                        exc.messages
+                    )
+                }
+            )
+
+        return attrs
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     RESTRICTED_FIELDS = {
