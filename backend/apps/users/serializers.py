@@ -96,6 +96,7 @@ class UserSerializer(serializers.ModelSerializer):
 
         return instance
 
+
 class UserRoleAssignmentSerializer(serializers.Serializer):
     roles = serializers.ListField(
         child=serializers.ChoiceField(
@@ -239,6 +240,21 @@ class PasswordChangeSerializer(serializers.Serializer):
             )
 
         return attrs
+
+
+class PasswordRecoveryRequestSerializer(serializers.Serializer):
+    """
+    Valida la solicitud pública de recuperación de contraseña.
+    """
+
+    email = serializers.EmailField(
+        required=True,
+        allow_blank=False,
+        max_length=254,
+    )
+
+    def validate_email(self, value):
+        return value.strip().lower()
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
