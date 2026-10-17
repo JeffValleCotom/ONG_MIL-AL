@@ -10,6 +10,14 @@ import UserManagementPage
   from './features/users/pages/UserManagementPage'
 
 
+const STUDENT_VIEW_ROLES = [
+  'DOCENTE',
+  'PSICOLOGO',
+  'TERAPEUTA',
+  'RESPONSABLE_INSTITUCIONAL',
+]
+
+
 function App() {
   const [authenticatedUser, setAuthenticatedUser] =
     useState(null)
@@ -26,15 +34,18 @@ function App() {
     return <PasswordResetPage />
   }
 
+  const roles = authenticatedUser?.roles ?? []
+
   const isAdministrator =
-    authenticatedUser?.roles?.includes(
-      'ADMINISTRADOR'
+    roles.includes('ADMINISTRADOR')
+
+  const canViewStudents =
+    STUDENT_VIEW_ROLES.some(
+      (role) => roles.includes(role)
     )
 
-  const isInstitutionalResponsible =
-    authenticatedUser?.roles?.includes(
-      'RESPONSABLE_INSTITUCIONAL'
-    )
+  const canManageStudents =
+    roles.includes('RESPONSABLE_INSTITUCIONAL')
 
   if (isAdministrator) {
     return (
@@ -44,10 +55,11 @@ function App() {
     )
   }
 
-  if (isInstitutionalResponsible) {
+  if (canViewStudents) {
     return (
       <StudentManagementPage
         onLogout={handleManagementLogout}
+        canManageStudents={canManageStudents}
       />
     )
   }
