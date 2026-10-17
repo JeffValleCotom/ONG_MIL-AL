@@ -20,9 +20,12 @@ from rest_framework.views import APIView
 from .serializers import (
     LoginSerializer,
     PasswordChangeSerializer,
+    PasswordRecoveryConfirmSerializer,
     PasswordRecoveryRequestSerializer,
+    PasswordRecoveryVerifySerializer,
     UserSerializer,
 )
+
 
 
 User = get_user_model()
@@ -228,6 +231,71 @@ class PasswordRecoveryRequestView(APIView):
         return Response(
             {
                 "detail": self.generic_message,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordRecoveryVerifyView(APIView):
+    """
+    Verifica que el uid y token de recuperación
+    correspondan a una identidad válida.
+    """
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = PasswordRecoveryVerifySerializer(
+            data=request.data,
+        )
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        return Response(
+            {
+                "valid": True,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordRecoveryConfirmView(APIView):
+    """
+    Confirma la recuperación y establece una nueva contraseña
+    después de validar nuevamente uid y token.
+    """
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = PasswordRecoveryConfirmSerializer(
+            data=request.data,
+        )
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        user = serializer.validated_data[
+            "user"
+        ]
+
+        user.set_password(
+            serializer.validated_data[
+                "new_password"
+            ]
+        )
+        user.save(
+            update_fields=["password"]
+        )
+
+        return Response(
+            {
+                "detail": (
+                    "Contraseña restablecida correctamente."
+                )
             },
             status=status.HTTP_200_OK,
         )

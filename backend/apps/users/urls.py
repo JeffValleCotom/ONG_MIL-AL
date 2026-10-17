@@ -7,7 +7,9 @@ from .auth_views import (
     LoginView,
     LogoutView,
     PasswordChangeView,
+    PasswordRecoveryConfirmView,
     PasswordRecoveryRequestView,
+    PasswordRecoveryVerifyView,
     SessionView,
 )
 
@@ -47,6 +49,18 @@ urlpatterns = [
         "auth/password/recovery/request/",
         PasswordRecoveryRequestView.as_view(),
         name="auth-password-recovery-request",
+    ),
+
+        path(
+        "auth/password/recovery/verify/",
+        PasswordRecoveryVerifyView.as_view(),
+        name="auth-password-recovery-verify",
+    ),
+
+    path(
+        "auth/password/recovery/confirm/",
+        PasswordRecoveryConfirmView.as_view(),
+        name="auth-password-recovery-confirm",
     ),
 
     path(
