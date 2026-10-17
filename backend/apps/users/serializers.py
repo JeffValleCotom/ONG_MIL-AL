@@ -4,6 +4,9 @@ from django.contrib.auth.models import Group
 from .roles import INSTITUTIONAL_ROLES
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 
 
 User = get_user_model()
@@ -255,6 +258,129 @@ class PasswordRecoveryRequestSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         return value.strip().lower()
+
+
+class PasswordRecoveryVerifySerializer(serializers.Serializer):
+    """
+    Valida la identidad del usuario mediante uid y token
+    de recuperación generados por Django.
+    """
+
+    uid = serializers.CharField(
+        required=True,
+        trim_whitespace=False,
+    )
+    token = serializers.CharField(
+        required=True,
+        trim_whitespace=False,
+    )
+
+    def validate(self, attrs):
+        try:
+            user_id = force_str(
+                urlsafe_base64_decode(
+                    attrs["uid"]
+                )
+            )
+
+            user = User.objects.get(
+                pk=user_id,
+                is_active=True,
+            )
+        except (
+            TypeError,
+            ValueError,
+            OverflowError,
+            User.DoesNotExist,
+        ):
+            raise serializers.ValidationError(
+                {
+                    "detail": (
+                        "El enlace de recuperación es "
+                        "inválido o ha expirado."
+                    )
+                }
+            )
+
+        if not user.has_usable_password():
+            raise serializers.ValidationError(
+                {
+                    "detail": (
+                        "El enlace de recuperación es "
+                        "inválido o ha expirado."
+                    )
+                }
+            )
+
+        if not default_token_generator.check_token(
+            user,
+            attrs["token"],
+        ):
+            raise serializers.ValidationError(
+                {
+                    "detail": (
+                        "El enlace de recuperación es "
+                        "inválido o ha expirado."
+                    )
+                }
+            )
+
+        attrs["user"] = user
+
+        return attrs
+
+
+class PasswordRecoveryConfirmSerializer(
+    PasswordRecoveryVerifySerializer
+):
+    """
+    Valida el token y la nueva contraseña antes de
+    completar la recuperación.
+    """
+
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        style={"input_type": "password"},
+    )
+    new_password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        style={"input_type": "password"},
+    )
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        if (
+            attrs["new_password"]
+            != attrs["new_password_confirm"]
+        ):
+            raise serializers.ValidationError(
+                {
+                    "new_password_confirm": (
+                        "Las nuevas contraseñas no coinciden."
+                    )
+                }
+            )
+
+        try:
+            validate_password(
+                attrs["new_password"],
+                user=attrs["user"],
+            )
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(
+                {
+                    "new_password": list(
+                        exc.messages
+                    )
+                }
+            )
+
+        return attrs
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
