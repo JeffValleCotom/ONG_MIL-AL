@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react'
 
 import LoginForm from '../components/LoginForm'
 import {
+  changePassword,
   getSession,
   login,
   logout,
+  requestPasswordRecovery,
 } from '../services/authService'
 import './LoginPage.css'
-
+import PasswordRecoveryRequestForm
+  from '../components/PasswordRecoveryRequestForm'
+import PasswordChangeForm
+  from '../components/PasswordChangeForm'
 
 function LoginPage({
   onAuthenticated,
@@ -19,7 +24,18 @@ function LoginPage({
   const [authenticatedUser, setAuthenticatedUser] = useState(null)
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-
+  const [isRecoveryMode, setIsRecoveryMode] =
+    useState(false)
+  const [recoveryMessage, setRecoveryMessage] =
+    useState('')
+  const [isPasswordChangeOpen, setIsPasswordChangeOpen] =
+    useState(false)
+  const [isChangingPassword, setIsChangingPassword] =
+    useState(false)
+  const [passwordChangeError, setPasswordChangeError] =
+    useState('')
+  const [passwordChangeSuccess, setPasswordChangeSuccess] =
+    useState('')
   useEffect(() => {
   let isMounted = true
 
@@ -70,6 +86,13 @@ function LoginPage({
         )
       }
 
+      setIsPasswordChangeOpen(false)
+      setPasswordChangeError('')
+      setPasswordChangeSuccess('')
+
+      setAuthenticatedUser(session.user)
+      onAuthenticated?.(session.user)
+
       setAuthenticatedUser(session.user)
       onAuthenticated?.(session.user)
     } catch (loginError) {
@@ -82,12 +105,103 @@ function LoginPage({
     }
   }
 
+  async function handleRecoverySubmit(email) {
+  setIsSubmitting(true)
+  setError('')
+  setRecoveryMessage('')
+
+  try {
+    const response = await requestPasswordRecovery(
+      email
+    )
+
+    setRecoveryMessage(
+      response?.detail ||
+        (
+          'Si existe una cuenta asociada, '
+          + 'se enviarán instrucciones de recuperación.'
+        )
+    )
+  } catch (recoveryError) {
+    setError(
+      recoveryError.message ||
+        'No fue posible procesar la solicitud.'
+    )
+  } finally {
+    setIsSubmitting(false)
+  }
+}
+
+function openRecovery() {
+  setError('')
+  setRecoveryMessage('')
+  setIsRecoveryMode(true)
+}
+
+function closeRecovery() {
+  setError('')
+  setRecoveryMessage('')
+  setIsRecoveryMode(false)
+}
+
+function openPasswordChange() {
+  setPasswordChangeError('')
+  setPasswordChangeSuccess('')
+  setIsPasswordChangeOpen(true)
+}
+
+function closePasswordChange() {
+  setPasswordChangeError('')
+  setPasswordChangeSuccess('')
+  setIsPasswordChangeOpen(false)
+}
+
+async function handlePasswordChangeSubmit(
+  passwordData
+) {
+  setIsChangingPassword(true)
+  setPasswordChangeError('')
+  setPasswordChangeSuccess('')
+
+  try {
+    const response = await changePassword(
+      passwordData
+    )
+
+    setPasswordChangeSuccess(
+      response?.detail ||
+        'Contraseña actualizada correctamente.'
+    )
+    return true
+  }
+
+  catch (passwordError) {
+    const validationMessage =
+      passwordError.data?.current_password?.[0] ||
+      passwordError.data?.new_password?.[0] ||
+      passwordError.data?.new_password_confirm?.[0]
+
+    setPasswordChangeError(
+      validationMessage ||
+        passwordError.message ||
+        'No fue posible cambiar la contraseña.'
+    )
+    return true
+  } finally {
+    setIsChangingPassword(false)
+  }
+}
   async function handleLogout() {
   setIsLoggingOut(true)
   setError('')
 
   try {
     await logout()
+
+    setIsPasswordChangeOpen(false)
+    setPasswordChangeError('')
+    setPasswordChangeSuccess('')
+
     setAuthenticatedUser(null)
     onLoggedOut?.()
   } catch (logoutError) {
@@ -154,12 +268,33 @@ function LoginPage({
             </div>
           )}
 
+          {!isPasswordChangeOpen && (
+            <button
+              className="login-button"
+              type="button"
+              onClick={openPasswordChange}
+            >
+              Cambiar contraseña
+            </button>
+          )}
+
+          {isPasswordChangeOpen && (
+            <PasswordChangeForm
+              onSubmit={handlePasswordChangeSubmit}
+              onCancel={closePasswordChange}
+              isSubmitting={isChangingPassword}
+              error={passwordChangeError}
+              success={passwordChangeSuccess}
+            />
+          )}
+
           <button
             className="login-button"
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
           >
+
             {isLoggingOut
               ? 'Cerrando sesión...'
               : 'Cerrar sesión'}
@@ -168,7 +303,35 @@ function LoginPage({
       </main>
     )
   }
+  if (isRecoveryMode) {
+    return (
+      <main className="login-page">
+        <section className="login-card">
+          <header className="login-card__header">
+            <p className="login-card__eyebrow">
+              ONG MIL-AL
+            </p>
 
+            <h1>Recuperar contraseña</h1>
+
+            <p>
+              Ingresa tu correo institucional.
+              Si existe una cuenta asociada,
+              recibirás instrucciones para continuar.
+            </p>
+          </header>
+
+          <PasswordRecoveryRequestForm
+            onSubmit={handleRecoverySubmit}
+            onBack={closeRecovery}
+            isSubmitting={isSubmitting}
+            error={error}
+            success={recoveryMessage}
+          />
+        </section>
+      </main>
+    )
+  }
   return (
     <main className="login-page">
       <section className="login-card">
@@ -190,6 +353,15 @@ function LoginPage({
           isSubmitting={isSubmitting}
           error={error}
         />
+
+        <button
+          className="login-link-button"
+          type="button"
+          onClick={openRecovery}
+          disabled={isSubmitting}
+        >
+          ¿Olvidaste tu contraseña?
+        </button>
 
         <footer className="login-card__footer">
           <p>
