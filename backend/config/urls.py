@@ -10,4 +10,8 @@ urlpatterns = [
         "api/v1/",
         include("apps.users.urls"),
     ),
+    path(
+        "api/v1/",
+        include("apps.students.urls"),
+    ),
 ]
