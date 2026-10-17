@@ -14,6 +14,11 @@ import UserTable from '../components/UserTable'
 import './UserManagementPage.css'
 import UserRoleForm from '../components/UserRoleForm'
 import ConfirmDialog from '../../../components/ConfirmDialog'
+import PasswordChangeForm
+  from '../../auth/components/PasswordChangeForm'
+import {
+  changePassword,
+} from '../../auth/services/authService'
 
 function UserManagementPage({ onLogout }) {
   const [users, setUsers] = useState([])
@@ -23,6 +28,14 @@ function UserManagementPage({ onLogout }) {
   const [selectedUser, setSelectedUser] = useState(null)
   const [roleUser, setRoleUser] = useState(null)
   const [statusUser, setStatusUser] = useState(null)
+  const [isPasswordChangeOpen, setIsPasswordChangeOpen] =
+  useState(false)
+  const [isChangingPassword, setIsChangingPassword] =
+    useState(false)
+  const [passwordChangeError, setPasswordChangeError] =
+    useState('')
+  const [passwordChangeSuccess, setPasswordChangeSuccess] =
+    useState('')
 
   useEffect(() => {
   let isMounted = true
@@ -56,6 +69,7 @@ function UserManagementPage({ onLogout }) {
 }, [])
 
   function openCreateForm() {
+    closePasswordChange()
     setRoleUser(null)
     setStatusUser(null)
     setSelectedUser(null)
@@ -63,6 +77,7 @@ function UserManagementPage({ onLogout }) {
   }
 
   function openEditForm(user) {
+    closePasswordChange()
     setRoleUser(null)
     setStatusUser(null)
     setSelectedUser(user)
@@ -108,10 +123,11 @@ function UserManagementPage({ onLogout }) {
 }
 
   function openRoleForm(user) {
-  setIsFormOpen(false)
-  setSelectedUser(null)
-  setStatusUser(null)
-  setRoleUser(user)
+    closePasswordChange()
+    setIsFormOpen(false)
+    setSelectedUser(null)
+    setStatusUser(null)
+    setRoleUser(user)
   }
 
   function closeRoleForm() {
@@ -140,6 +156,7 @@ function UserManagementPage({ onLogout }) {
 }
 
 function openStatusConfirm(user) {
+  closePasswordChange()
   setIsFormOpen(false)
   setSelectedUser(null)
   setRoleUser(null)
@@ -172,6 +189,57 @@ async function handleStatusConfirm() {
   }
 }
 
+function openPasswordChange() {
+  setIsFormOpen(false)
+  setSelectedUser(null)
+  setRoleUser(null)
+  setStatusUser(null)
+
+  setPasswordChangeError('')
+  setPasswordChangeSuccess('')
+  setIsPasswordChangeOpen(true)
+}
+
+function closePasswordChange() {
+  setPasswordChangeError('')
+  setPasswordChangeSuccess('')
+  setIsPasswordChangeOpen(false)
+}
+
+async function handlePasswordChangeSubmit(
+  passwordData
+) {
+  setIsChangingPassword(true)
+  setPasswordChangeError('')
+  setPasswordChangeSuccess('')
+
+  try {
+    const response = await changePassword(
+      passwordData
+    )
+
+    setPasswordChangeSuccess(
+      response?.detail ||
+        'Contraseña actualizada correctamente.'
+    )
+    return true
+  } catch (passwordError) {
+    const validationMessage =
+      passwordError.data?.current_password?.[0] ||
+      passwordError.data?.new_password?.[0] ||
+      passwordError.data?.new_password_confirm?.[0]
+
+    setPasswordChangeError(
+      validationMessage ||
+        passwordError.message ||
+        'No fue posible cambiar la contraseña.'
+    )
+    return true
+  } finally {
+    setIsChangingPassword(false)
+  }
+}
+
   return (
     <main className="users-page">
       <header className="users-page__header">
@@ -191,20 +259,31 @@ async function handleStatusConfirm() {
           </p>
         </div>
 
-        <button
-          className="button button--primary"
-          type="button"
-          onClick={openCreateForm}
-        >
-          Nuevo usuario
-        </button>
-        <button
-          className="button button--secondary"
-          type="button"
-          onClick={onLogout}
-        >
-          Cerrar sesión
-        </button>
+        <div className="users-page__actions">
+          <button
+            className="button button--primary"
+            type="button"
+            onClick={openCreateForm}
+          >
+            Nuevo usuario
+          </button>
+
+          <button
+            className="button button--secondary"
+            type="button"
+            onClick={openPasswordChange}
+          >
+            Cambiar mi contraseña
+          </button>
+
+          <button
+            className="button button--secondary"
+            type="button"
+            onClick={onLogout}
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </header>
 
       <section
@@ -303,7 +382,20 @@ async function handleStatusConfirm() {
         onCancel={closeStatusConfirm}
       />
     )}
-
+    {isPasswordChangeOpen && (
+      <Modal
+        title="Cambiar mi contraseña"
+        onClose={closePasswordChange}
+      >
+        <PasswordChangeForm
+          onSubmit={handlePasswordChangeSubmit}
+          onCancel={closePasswordChange}
+          isSubmitting={isChangingPassword}
+          error={passwordChangeError}
+          success={passwordChangeSuccess}
+        />
+      </Modal>
+    )}
     </main>
   )
 }

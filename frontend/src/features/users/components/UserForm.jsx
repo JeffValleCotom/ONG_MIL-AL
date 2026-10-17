@@ -16,7 +16,6 @@ function getInitialFormData(user) {
     email: user.email ?? '',
     first_name: user.first_name ?? '',
     last_name: user.last_name ?? '',
-    password: '',
   }
 }
 
@@ -113,30 +112,23 @@ function UserForm({
           />
         </div>
       </div>
+      {!isEditing && (
+        <div className="form-field">
+          <label htmlFor="password">
+            Contraseña
+          </label>
 
-      <div className="form-field">
-        <label htmlFor="password">
-          {isEditing
-            ? 'Nueva contraseña'
-            : 'Contraseña'}
-        </label>
-
-        <input
-          id="password"
-          name="password"
-          type="password"
-          value={formData.password}
-          onChange={handleChange}
-          required={!isEditing}
-          autoComplete="new-password"
-        />
-
-        {isEditing && (
-          <small>
-            Déjala vacía para conservar la contraseña actual.
-          </small>
-        )}
-      </div>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            autoComplete="new-password"
+          />
+        </div>
+      )}
 
       <div className="form-actions">
         <button
