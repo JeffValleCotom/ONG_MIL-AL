@@ -238,6 +238,46 @@ class StudentRegistrationAPITests(APITestCase):
         )
         self.assertFalse(Student.objects.exists())
 
+    def test_psicologo_and_terapeuta_cannot_register_student(
+        self,
+    ):
+        role_names = (
+            "PSICOLOGO",
+            "TERAPEUTA",
+        )
+
+        for role_name in role_names:
+            with self.subTest(role=role_name):
+                user = User.objects.create_user(
+                    username=(
+                        f"register_{role_name.lower()}"
+                    ),
+                    password="MilalNoManage123!",
+                )
+                user.groups.add(
+                    Group.objects.get(
+                        name=role_name
+                    )
+                )
+
+                self.client.force_authenticate(
+                    user=user
+                )
+
+                response = self.client.post(
+                    self.url,
+                    self.valid_payload,
+                    format="json",
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_403_FORBIDDEN,
+                )
+                self.assertFalse(
+                    Student.objects.exists()
+                )
+
     def test_administrator_without_permission_cannot_register_student(
         self,
     ):
