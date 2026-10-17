@@ -47,6 +47,7 @@ Los roles definidos actualmente son:
 | `manage_permissions` | Administrar la asociación de permisos a roles |
 | `view_students` | Consultar información general de estudiantes |
 | `manage_students` | Crear y actualizar información general de estudiantes |
+| `manage_student_assignments` | Administrar asignaciones de profesionales a estudiantes |
 | `view_academic_followups` | Consultar seguimientos académicos |
 | `manage_academic_followups` | Registrar y actualizar seguimientos académicos |
 | `view_psychological_followups` | Consultar seguimientos psicológicos |
@@ -73,6 +74,7 @@ Leyenda:
 | `manage_permissions` | X | — | — | — | — |
 | `view_students` | — | X | X | X | X |
 | `manage_students` | — | — | — | — | X |
+| `manage_student_assignments` | — | — | — | — | X |
 | `view_academic_followups` | — | X | — | — | — |
 | `manage_academic_followups` | — | X | — | — | — |
 | `view_psychological_followups` | — | — | X | — | — |
@@ -102,6 +104,32 @@ operación protegida.
 
 Una respuesta proveniente de React no debe utilizarse como evidencia de que
 un usuario posee autorización.
+
+### Alcance por asignación de estudiantes
+
+A partir de HU-07, el permiso `view_students` habilita la funcionalidad de
+consulta, pero no implica acceso a todos los estudiantes de la institución.
+
+Para los roles profesionales:
+
+- `DOCENTE` solo podrá consultar estudiantes con una asignación activa bajo el
+  contexto `DOCENTE`;
+- `PSICOLOGO` solo podrá consultar estudiantes con una asignación activa bajo el
+  contexto `PSICOLOGO`;
+- `TERAPEUTA` solo podrá consultar estudiantes con una asignación activa bajo el
+  contexto `TERAPEUTA`.
+
+El rol `RESPONSABLE_INSTITUCIONAL` conservará el alcance institucional necesario
+para gestionar información general y asignaciones.
+
+La posesión simultánea de varios roles no combinará las asignaciones entre
+contextos profesionales.
+
+Por ejemplo, una asignación como `DOCENTE` no habilitará el acceso psicológico
+del mismo estudiante aunque el usuario también posea el rol `PSICOLOGO`.
+
+El backend deberá aplicar estas restricciones antes de retornar información al
+frontend.
 
 ### Reglas generales
 
