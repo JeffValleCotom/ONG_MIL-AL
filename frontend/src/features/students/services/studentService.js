@@ -38,3 +38,26 @@ export function createStudent(studentData) {
     data: studentData,
   })
 }
+
+export function updateStudent(studentId, studentData) {
+  return apiRequest(`/students/${studentId}/`, {
+    method: 'PATCH',
+    data: studentData,
+  })
+}
+
+
+export function activateStudent(studentId) {
+  return apiRequest(`/students/${studentId}/activate/`, {
+    method: 'PATCH',
+    data: {},
+  })
+}
+
+
+export function deactivateStudent(studentId) {
+  return apiRequest(`/students/${studentId}/deactivate/`, {
+    method: 'PATCH',
+    data: {},
+  })
+}

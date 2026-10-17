@@ -304,3 +304,24 @@
     width: 100%;
   }
 }
+
+.student-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.button--danger {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.confirm-dialog p {
+  margin: 0;
+  color: #475569;
+}
+
+.students-message--success {
+  color: #166534;
+  background: #dcfce7;
+}

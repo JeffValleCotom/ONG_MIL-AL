@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react'
 
+import ConfirmDialog from '../../../components/ConfirmDialog'
+import Modal from '../../../components/Modal'
+import '../../../components/Modal.css'
+import StudentEditForm
+  from '../components/StudentEditForm'
 import StudentRegistrationForm
   from '../components/StudentRegistrationForm'
 import StudentTable
   from '../components/StudentTable'
 import {
+  activateStudent,
   createStudent,
+  deactivateStudent,
   getStudents,
+  updateStudent,
 } from '../services/studentService'
 import './StudentManagementPage.css'
 
@@ -27,6 +35,7 @@ function getStudentErrorMessage(error) {
     'last_name',
     'date_of_birth',
     'admission_date',
+    'is_active',
     'status',
     'detail',
   ]
@@ -56,19 +65,35 @@ function StudentManagementPage({
 }) {
   const [students, setStudents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+
   const [isSubmitting, setIsSubmitting] =
+    useState(false)
+
+  const [isUpdating, setIsUpdating] =
+    useState(false)
+
+  const [isChangingStatus, setIsChangingStatus] =
     useState(false)
 
   const [listError, setListError] = useState('')
   const [registrationError, setRegistrationError] =
     useState('')
+  const [editError, setEditError] = useState('')
+  const [actionError, setActionError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const [editingStudent, setEditingStudent] =
+    useState(null)
+
+  const [statusStudent, setStatusStudent] =
+    useState(null)
 
   const [formVersion, setFormVersion] =
     useState(0)
 
   const [searchInput, setSearchInput] =
     useState('')
+
   const [statusInput, setStatusInput] =
     useState('')
 
@@ -118,6 +143,7 @@ function StudentManagementPage({
   async function handleStudentSubmit(studentData) {
     setIsSubmitting(true)
     setRegistrationError('')
+    setActionError('')
     setSuccess('')
 
     try {
@@ -144,6 +170,115 @@ function StudentManagementPage({
     }
   }
 
+  function handleEdit(student) {
+    setEditingStudent(student)
+    setEditError('')
+    setActionError('')
+    setSuccess('')
+  }
+
+  function handleEditCancel() {
+    if (isUpdating) {
+      return
+    }
+
+    setEditingStudent(null)
+    setEditError('')
+  }
+
+  async function handleStudentUpdate(studentData) {
+    if (!editingStudent || isUpdating) {
+      return
+    }
+
+    setIsUpdating(true)
+    setEditError('')
+    setActionError('')
+    setSuccess('')
+
+    try {
+      const updatedStudent = await updateStudent(
+        editingStudent.id,
+        studentData
+      )
+
+      await refreshStudents()
+
+      setEditingStudent(null)
+
+      setSuccess(
+        `Estudiante `
+        + `${updatedStudent.institutional_code} `
+        + 'actualizado correctamente.'
+      )
+    } catch (updateError) {
+      setEditError(
+        getStudentErrorMessage(updateError)
+      )
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  function handleToggleStatus(student) {
+    setStatusStudent(student)
+    setActionError('')
+    setSuccess('')
+  }
+
+  function handleStatusCancel() {
+    if (isChangingStatus) {
+      return
+    }
+
+    setStatusStudent(null)
+  }
+
+  async function handleStatusConfirm() {
+    if (!statusStudent || isChangingStatus) {
+      return
+    }
+
+    const student = statusStudent
+    const shouldDeactivate = student.is_active
+
+    setIsChangingStatus(true)
+    setActionError('')
+    setSuccess('')
+
+    try {
+      const response = shouldDeactivate
+        ? await deactivateStudent(student.id)
+        : await activateStudent(student.id)
+
+      setStatusStudent(null)
+
+      try {
+        await refreshStudents()
+      } catch (refreshError) {
+        setListError(
+          getStudentErrorMessage(refreshError)
+        )
+      }
+
+      setSuccess(
+        response.detail
+        || (
+          shouldDeactivate
+            ? 'Estudiante desactivado correctamente.'
+            : 'Estudiante activado correctamente.'
+        )
+      )
+    } catch (statusError) {
+      setStatusStudent(null)
+      setActionError(
+        getStudentErrorMessage(statusError)
+      )
+    } finally {
+      setIsChangingStatus(false)
+    }
+  }
+
   function handleFilterSubmit(event) {
     event.preventDefault()
 
@@ -162,6 +297,10 @@ function StudentManagementPage({
     })
   }
 
+  const statusAction = statusStudent?.is_active
+    ? 'desactivar'
+    : 'activar'
+
   return (
     <main className="students-page">
       <header className="students-page__header">
@@ -177,7 +316,7 @@ function StudentManagementPage({
           <p className="students-page__description">
             {canManageStudents
               ? (
-                'Consulta y registra la información '
+                'Consulta y gestiona la información '
                 + 'general de los estudiantes '
                 + 'atendidos por MIL-AL.'
               )
@@ -194,12 +333,34 @@ function StudentManagementPage({
             className="button button--secondary"
             type="button"
             onClick={onLogout}
-            disabled={isSubmitting}
+            disabled={
+              isSubmitting
+              || isUpdating
+              || isChangingStatus
+            }
           >
             Cerrar sesión
           </button>
         </div>
       </header>
+
+      {success && (
+        <div
+          className="students-message students-message--success"
+          role="status"
+        >
+          {success}
+        </div>
+      )}
+
+      {actionError && (
+        <div
+          className="students-message students-message--error"
+          role="alert"
+        >
+          {actionError}
+        </div>
+      )}
 
       <section
         className="students-card"
@@ -299,6 +460,9 @@ function StudentManagementPage({
         {!isLoading && !listError && (
           <StudentTable
             students={students}
+            canManageStudents={canManageStudents}
+            onEdit={handleEdit}
+            onToggleStatus={handleToggleStatus}
           />
         )}
       </section>
@@ -325,10 +489,52 @@ function StudentManagementPage({
               onSubmit={handleStudentSubmit}
               isSubmitting={isSubmitting}
               error={registrationError}
-              success={success}
+              success=""
             />
           </div>
         </section>
+      )}
+
+      {canManageStudents && editingStudent && (
+        <Modal
+          title="Editar estudiante"
+          onClose={handleEditCancel}
+        >
+          <StudentEditForm
+            student={editingStudent}
+            onSubmit={handleStudentUpdate}
+            onCancel={handleEditCancel}
+            isSubmitting={isUpdating}
+            error={editError}
+          />
+        </Modal>
+      )}
+
+      {canManageStudents && statusStudent && (
+        <ConfirmDialog
+          title={
+            statusStudent.is_active
+              ? 'Desactivar estudiante'
+              : 'Activar estudiante'
+          }
+          message={
+            `¿Deseas ${statusAction} al estudiante `
+            + `${statusStudent.first_name} `
+            + `${statusStudent.last_name} `
+            + `(${statusStudent.institutional_code})?`
+          }
+          confirmLabel={
+            isChangingStatus
+              ? 'Procesando...'
+              : (
+                statusStudent.is_active
+                  ? 'Desactivar'
+                  : 'Activar'
+              )
+          }
+          onConfirm={handleStatusConfirm}
+          onCancel={handleStatusCancel}
+        />
       )}
     </main>
   )
