@@ -15,6 +15,9 @@ function formatDate(value) {
 
 function StudentTable({
   students,
+  canManageStudents = false,
+  onEdit,
+  onToggleStatus,
 }) {
   if (students.length === 0) {
     return (
@@ -48,6 +51,12 @@ function StudentTable({
             <th scope="col">
               Estado
             </th>
+
+            {canManageStudents && (
+              <th scope="col">
+                Acciones
+              </th>
+            )}
           </tr>
         </thead>
 
@@ -95,6 +104,36 @@ function StudentTable({
                     : 'Inactivo'}
                 </span>
               </td>
+
+              {canManageStudents && (
+                <td>
+                  <div className="student-actions">
+                    <button
+                      className="button button--secondary"
+                      type="button"
+                      onClick={() => onEdit?.(student)}
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      className={
+                        student.is_active
+                          ? 'button button--danger'
+                          : 'button button--primary'
+                      }
+                      type="button"
+                      onClick={() => {
+                        onToggleStatus?.(student)
+                      }}
+                    >
+                      {student.is_active
+                        ? 'Desactivar'
+                        : 'Activar'}
+                    </button>
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

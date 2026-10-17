@@ -3,8 +3,11 @@ from rest_framework import (
     mixins,
     permissions,
     serializers,
+    status,
     viewsets,
 )
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from apps.users.permissions import HasPlatformPermission
 
@@ -16,6 +19,7 @@ class StudentViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
     queryset = Student.objects.all()
@@ -28,6 +32,7 @@ class StudentViewSet(
     http_method_names = [
         "get",
         "post",
+        "patch",
         "head",
         "options",
     ]
@@ -36,6 +41,10 @@ class StudentViewSet(
         "list": "view_students",
         "retrieve": "view_students",
         "create": "manage_students",
+        "update": "manage_students",
+        "partial_update": "manage_students",
+        "activate": "manage_students",
+        "deactivate": "manage_students",
     }
 
     def get_required_permission(self):
@@ -96,3 +105,85 @@ class StudentViewSet(
             )
 
         return queryset
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="activate",
+    )
+    def activate(self, request, pk=None):
+        student = self.get_object()
+
+        if student.is_active:
+            return Response(
+                {
+                    "detail": (
+                        "El estudiante ya se encuentra activo."
+                    ),
+                    "student": self.get_serializer(
+                        student
+                    ).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        student.is_active = True
+        student.save(
+            update_fields=[
+                "is_active",
+                "updated_at",
+            ]
+        )
+
+        return Response(
+            {
+                "detail": (
+                    "Estudiante activado correctamente."
+                ),
+                "student": self.get_serializer(
+                    student
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="deactivate",
+    )
+    def deactivate(self, request, pk=None):
+        student = self.get_object()
+
+        if not student.is_active:
+            return Response(
+                {
+                    "detail": (
+                        "El estudiante ya se encuentra inactivo."
+                    ),
+                    "student": self.get_serializer(
+                        student
+                    ).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        student.is_active = False
+        student.save(
+            update_fields=[
+                "is_active",
+                "updated_at",
+            ]
+        )
+
+        return Response(
+            {
+                "detail": (
+                    "Estudiante desactivado correctamente."
+                ),
+                "student": self.get_serializer(
+                    student
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )

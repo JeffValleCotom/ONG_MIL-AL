@@ -69,6 +69,20 @@ class StudentSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
 
+        if (
+            self.instance is not None
+            and "is_active" in self.initial_data
+        ):
+            raise serializers.ValidationError(
+                {
+                    "is_active": (
+                        "El estado del estudiante debe "
+                        "modificarse mediante las acciones "
+                        "de activación o desactivación."
+                    )
+                }
+            )
+
         date_of_birth = attrs.get(
             "date_of_birth",
             getattr(
