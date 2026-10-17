@@ -1,10 +1,13 @@
 import { useState } from 'react'
 
 import LoginPage from './features/auth/pages/LoginPage'
-import UserManagementPage from './features/users/pages/UserManagementPage'
-import { logout } from './features/auth/services/authService'
 import PasswordResetPage
   from './features/auth/pages/PasswordResetPage'
+import { logout } from './features/auth/services/authService'
+import StudentManagementPage
+  from './features/students/pages/StudentManagementPage'
+import UserManagementPage
+  from './features/users/pages/UserManagementPage'
 
 
 function App() {
@@ -12,15 +15,15 @@ function App() {
     useState(null)
 
   const isPasswordResetPath =
-  window.location.pathname === '/password-reset'
+    window.location.pathname === '/password-reset'
 
-  async function handleAdministratorLogout() {
+  async function handleManagementLogout() {
     await logout()
     setAuthenticatedUser(null)
   }
 
   if (isPasswordResetPath) {
-  return <PasswordResetPage />
+    return <PasswordResetPage />
   }
 
   const isAdministrator =
@@ -28,10 +31,23 @@ function App() {
       'ADMINISTRADOR'
     )
 
+  const isInstitutionalResponsible =
+    authenticatedUser?.roles?.includes(
+      'RESPONSABLE_INSTITUCIONAL'
+    )
+
   if (isAdministrator) {
     return (
       <UserManagementPage
-        onLogout={handleAdministratorLogout}
+        onLogout={handleManagementLogout}
+      />
+    )
+  }
+
+  if (isInstitutionalResponsible) {
+    return (
+      <StudentManagementPage
+        onLogout={handleManagementLogout}
       />
     )
   }
@@ -43,5 +59,6 @@ function App() {
     />
   )
 }
+
 
 export default App
