@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import ConfirmDialog from '../../../components/ConfirmDialog'
 import Modal from '../../../components/Modal'
 import '../../../components/Modal.css'
+import StudentAssignmentManager
+  from '../components/StudentAssignmentManager'
 import StudentEditForm
   from '../components/StudentEditForm'
 import StudentRegistrationForm
@@ -17,7 +19,6 @@ import {
   updateStudent,
 } from '../services/studentService'
 import './StudentManagementPage.css'
-
 
 function getStudentErrorMessage(error) {
   const data = error?.data
@@ -101,6 +102,8 @@ function StudentManagementPage({
     search: '',
     status: '',
   })
+  const [assignmentStudent, setAssignmentStudent] =
+    useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -184,6 +187,17 @@ function StudentManagementPage({
 
     setEditingStudent(null)
     setEditError('')
+  }
+
+  function handleManageAssignments(student) {
+    setAssignmentStudent(student)
+    setActionError('')
+    setSuccess('')
+  }
+
+
+  function handleAssignmentsClose() {
+    setAssignmentStudent(null)
   }
 
   async function handleStudentUpdate(studentData) {
@@ -463,6 +477,7 @@ function StudentManagementPage({
             canManageStudents={canManageStudents}
             onEdit={handleEdit}
             onToggleStatus={handleToggleStatus}
+            onManageAssignments={handleManageAssignments}
           />
         )}
       </section>
@@ -493,6 +508,17 @@ function StudentManagementPage({
             />
           </div>
         </section>
+      )}
+
+      {canManageStudents && assignmentStudent && (
+        <Modal
+          title="Asignaciones profesionales"
+          onClose={handleAssignmentsClose}
+        >
+          <StudentAssignmentManager
+            student={assignmentStudent}
+          />
+        </Modal>
       )}
 
       {canManageStudents && editingStudent && (

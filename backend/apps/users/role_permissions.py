@@ -37,6 +37,7 @@ ROLE_PERMISSIONS = {
     "RESPONSABLE_INSTITUCIONAL": (
         "view_students",
         "manage_students",
+        "manage_student_assignments",
         "view_reports",
         "view_dashboard",
         "view_alerts",

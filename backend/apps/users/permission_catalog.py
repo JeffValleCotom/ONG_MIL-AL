@@ -20,6 +20,10 @@ PLATFORM_PERMISSIONS = (
         "Puede administrar información general de estudiantes",
     ),
     (
+        "manage_student_assignments",
+        "Puede administrar asignaciones de profesionales a estudiantes",
+    ),
+    (
         "view_academic_followups",
         "Puede consultar seguimientos académicos",
     ),

@@ -4,8 +4,10 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.students.models import Student
-
+from apps.students.models import (
+    Student,
+    StudentProfessionalAssignment,
+)
 
 User = get_user_model()
 
@@ -16,6 +18,12 @@ class StudentQueryAPITests(APITestCase):
         "PSICOLOGO",
         "TERAPEUTA",
         "RESPONSABLE_INSTITUCIONAL",
+    )
+
+    PROFESSIONAL_ROLES = (
+        "DOCENTE",
+        "PSICOLOGO",
+        "TERAPEUTA",
     )
 
     def setUp(self):
@@ -48,6 +56,13 @@ class StudentQueryAPITests(APITestCase):
 
         self.list_url = reverse("student-list")
 
+        self.assignment_manager = (
+            self.create_user_with_role(
+                username="responsable_fixture_asignaciones",
+                role_name="RESPONSABLE_INSTITUCIONAL",
+            )
+        )
+
     def create_user_with_role(
         self,
         username,
@@ -63,6 +78,35 @@ class StudentQueryAPITests(APITestCase):
 
         return user
 
+    def assign_student(
+        self,
+        professional,
+        professional_role,
+        student,
+    ):
+        return StudentProfessionalAssignment.objects.create(
+            student=student,
+            professional=professional,
+            professional_role=professional_role,
+            assigned_by=self.assignment_manager,
+        )
+
+    def assign_all_students(
+        self,
+        professional,
+        professional_role,
+    ):
+        for student in (
+            self.student_ana,
+            self.student_carlos,
+            self.student_maria,
+        ):
+            self.assign_student(
+                professional=professional,
+                professional_role=professional_role,
+                student=student,
+            )
+
     def authenticate_with_role(
         self,
         username,
@@ -72,6 +116,11 @@ class StudentQueryAPITests(APITestCase):
             username=username,
             role_name=role_name,
         )
+        if role_name in self.PROFESSIONAL_ROLES:
+                    self.assign_all_students(
+                        professional=user,
+                        professional_role=role_name,
+                    )
 
         self.client.force_authenticate(user=user)
 
@@ -84,6 +133,12 @@ class StudentQueryAPITests(APITestCase):
                     username=f"query_{role_name.lower()}",
                     role_name=role_name,
                 )
+
+                if role_name in self.PROFESSIONAL_ROLES:
+                    self.assign_all_students(
+                        professional=user,
+                        professional_role=role_name,
+                    )
 
                 self.client.force_authenticate(user=user)
 
@@ -349,4 +404,223 @@ class StudentQueryAPITests(APITestCase):
                 status.HTTP_401_UNAUTHORIZED,
                 status.HTTP_403_FORBIDDEN,
             ],
+        )
+
+    def test_docente_only_lists_assigned_students(self):
+        docente = self.create_user_with_role(
+            username="docente_scope",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        self.client.force_authenticate(
+            user=docente
+        )
+
+        response = self.client.get(
+            self.list_url
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            len(response.data),
+            1,
+        )
+
+        self.assertEqual(
+            response.data[0]["id"],
+            self.student_ana.id,
+        )
+
+    def test_professional_cannot_retrieve_unassigned_student(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_unassigned_detail",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        self.client.force_authenticate(
+            user=docente
+        )
+
+        response = self.client.get(
+            reverse(
+                "student-detail",
+                kwargs={
+                    "pk": self.student_maria.pk,
+                },
+            )
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+    def test_multi_role_user_keeps_assignment_contexts_separate(
+        self,
+    ):
+        professional = User.objects.create_user(
+            username="docente_psicologo_scope",
+            password="MilalStudentQuery123!",
+        )
+
+        professional.groups.add(
+            Group.objects.get(name="DOCENTE"),
+            Group.objects.get(name="PSICOLOGO"),
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="PSICOLOGO",
+            student=self.student_maria,
+        )
+
+        self.client.force_authenticate(
+            user=professional
+        )
+
+        docente_response = self.client.get(
+            self.list_url,
+            {
+                "context": "DOCENTE",
+            },
+        )
+
+        self.assertEqual(
+            docente_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            [
+                student["id"]
+                for student in docente_response.data
+            ],
+            [
+                self.student_ana.id,
+            ],
+        )
+
+        psicologo_response = self.client.get(
+            self.list_url,
+            {
+                "context": "PSICOLOGO",
+            },
+        )
+
+        self.assertEqual(
+            psicologo_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            [
+                student["id"]
+                for student in psicologo_response.data
+            ],
+            [
+                self.student_maria.id,
+            ],
+        )
+
+    def test_multi_role_user_must_specify_context(self):
+        professional = User.objects.create_user(
+            username="multi_role_without_context",
+            password="MilalStudentQuery123!",
+        )
+
+        professional.groups.add(
+            Group.objects.get(name="DOCENTE"),
+            Group.objects.get(name="PSICOLOGO"),
+        )
+
+        self.client.force_authenticate(
+            user=professional
+        )
+
+        response = self.client.get(
+            self.list_url
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.assertIn(
+            "context",
+            response.data,
+        )
+
+    def test_user_cannot_request_professional_context_not_owned(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_context_attack",
+            role_name="DOCENTE",
+        )
+
+        self.client.force_authenticate(
+            user=docente
+        )
+
+        response = self.client.get(
+            self.list_url,
+            {
+                "context": "PSICOLOGO",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+    def test_responsible_keeps_institutional_student_scope(
+        self,
+    ):
+        responsible = self.create_user_with_role(
+            username="responsable_scope",
+            role_name="RESPONSABLE_INSTITUCIONAL",
+        )
+
+        self.client.force_authenticate(
+            user=responsible
+        )
+
+        response = self.client.get(
+            self.list_url
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            len(response.data),
+            3,
         )
