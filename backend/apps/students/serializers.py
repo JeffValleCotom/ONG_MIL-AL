@@ -1,7 +1,10 @@
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Student
+from .models import Student, StudentProfessionalAssignment
+
+User = get_user_model()
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -127,6 +130,128 @@ class StudentSerializer(serializers.ModelSerializer):
             errors["admission_date"] = (
                 "La fecha de ingreso no puede ser anterior "
                 "a la fecha de nacimiento."
+            )
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return attrs
+
+
+class AssignmentUserSummarySerializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+        ]
+
+
+class AssignmentStudentSummarySerializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = Student
+        fields = [
+            "id",
+            "institutional_code",
+            "first_name",
+            "last_name",
+            "is_active",
+        ]
+
+
+class StudentProfessionalAssignmentSerializer(
+    serializers.ModelSerializer
+):
+    student = AssignmentStudentSummarySerializer(
+        read_only=True,
+    )
+    student_id = serializers.PrimaryKeyRelatedField(
+        source="student",
+        queryset=Student.objects.all(),
+        write_only=True,
+    )
+
+    professional = AssignmentUserSummarySerializer(
+        read_only=True,
+    )
+    professional_id = serializers.PrimaryKeyRelatedField(
+        source="professional",
+        queryset=User.objects.all(),
+        write_only=True,
+    )
+
+    assigned_by = AssignmentUserSummarySerializer(
+        read_only=True,
+    )
+
+    class Meta:
+        model = StudentProfessionalAssignment
+        fields = [
+            "id",
+            "student",
+            "student_id",
+            "professional",
+            "professional_id",
+            "professional_role",
+            "is_active",
+            "assigned_at",
+            "unassigned_at",
+            "assigned_by",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "is_active",
+            "assigned_at",
+            "unassigned_at",
+            "assigned_by",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        student = attrs["student"]
+        professional = attrs["professional"]
+        professional_role = attrs["professional_role"]
+
+        errors = {}
+
+        if not student.is_active:
+            errors["student_id"] = (
+                "No se puede asignar un profesional "
+                "a un estudiante inactivo."
+            )
+
+        if not professional.is_active:
+            errors["professional_id"] = (
+                "El profesional seleccionado está inactivo."
+            )
+        elif not professional.groups.filter(
+            name=professional_role,
+        ).exists():
+            errors["professional_id"] = (
+                "El usuario seleccionado no posee "
+                f"el rol {professional_role}."
+            )
+
+        if StudentProfessionalAssignment.objects.filter(
+            student=student,
+            professional=professional,
+            professional_role=professional_role,
+            is_active=True,
+        ).exists():
+            errors["non_field_errors"] = (
+                "Ya existe una asignación activa para "
+                "este estudiante, profesional y rol."
             )
 
         if errors:

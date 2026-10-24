@@ -61,3 +61,75 @@ export function deactivateStudent(studentId) {
     data: {},
   })
 }
+
+export function getStudentAssignments({
+  studentId,
+  status = '',
+  professionalRole = '',
+} = {}) {
+  const params = new URLSearchParams()
+
+  if (studentId) {
+    params.set('student', studentId)
+  }
+
+  if (status) {
+    params.set('status', status)
+  }
+
+  if (professionalRole) {
+    params.set(
+      'professional_role',
+      professionalRole
+    )
+  }
+
+  const queryString = params.toString()
+
+  return apiRequest(
+    `/student-assignments/${queryString
+      ? `?${queryString}`
+      : ''}`
+  )
+}
+
+
+export function getEligibleProfessionals(role) {
+  const params = new URLSearchParams({
+    role,
+  })
+
+  return apiRequest(
+    `/student-assignments/eligible-professionals/`
+    + `?${params.toString()}`
+  )
+}
+
+
+export function createStudentAssignment({
+  studentId,
+  professionalId,
+  professionalRole,
+}) {
+  return apiRequest('/student-assignments/', {
+    method: 'POST',
+    data: {
+      student_id: studentId,
+      professional_id: professionalId,
+      professional_role: professionalRole,
+    },
+  })
+}
+
+
+export function finishStudentAssignment(
+  assignmentId
+) {
+  return apiRequest(
+    `/student-assignments/${assignmentId}/finish/`,
+    {
+      method: 'PATCH',
+      data: {},
+    }
+  )
+}

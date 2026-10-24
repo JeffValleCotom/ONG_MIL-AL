@@ -18,6 +18,7 @@ function StudentTable({
   canManageStudents = false,
   onEdit,
   onToggleStatus,
+  onManageAssignments,
 }) {
   if (students.length === 0) {
     return (
@@ -108,6 +109,16 @@ function StudentTable({
               {canManageStudents && (
                 <td>
                   <div className="student-actions">
+                    <button
+                      className="button button--secondary"
+                      type="button"
+                      onClick={() => {
+                        onManageAssignments?.(student)
+                      }}
+                    >
+                      Asignaciones
+                    </button>
+
                     <button
                       className="button button--secondary"
                       type="button"

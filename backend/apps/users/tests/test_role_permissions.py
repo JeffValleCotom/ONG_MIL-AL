@@ -86,3 +86,37 @@ class RolePermissionTests(TestCase):
                 effective_permissions
             )
         )
+
+    def test_student_assignment_permission_is_restricted_to_responsible_role(
+        self,
+    ):
+        permission_codename = "manage_student_assignments"
+        expected_role = "RESPONSABLE_INSTITUCIONAL"
+
+        configured_roles = {
+            role_name
+            for role_name, permission_codenames
+            in ROLE_PERMISSIONS.items()
+            if permission_codename in permission_codenames
+        }
+
+        self.assertEqual(
+            configured_roles,
+            {expected_role},
+        )
+
+        database_roles = set(
+            Group.objects.filter(
+                permissions__content_type__app_label="users",
+                permissions__content_type__model="user",
+                permissions__codename=permission_codename,
+            ).values_list(
+                "name",
+                flat=True,
+            )
+        )
+
+        self.assertEqual(
+            database_roles,
+            {expected_role},
+        )

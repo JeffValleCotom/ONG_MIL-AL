@@ -10,20 +10,25 @@ from apps.users.permission_catalog import (
 
 class PermissionCatalogTests(TestCase):
 
-    def test_permission_catalog_contains_16_unique_permissions(self):
+    def test_permission_catalog_contains_17_unique_permissions(self):
         self.assertEqual(
             len(PLATFORM_PERMISSIONS),
-            16,
+            17,
         )
 
         self.assertEqual(
             len(PLATFORM_PERMISSION_CODENAMES),
-            16,
+            17,
         )
 
         self.assertEqual(
             len(set(PLATFORM_PERMISSION_CODENAMES)),
-            16,
+            17,
+        )
+
+        self.assertIn(
+            "manage_student_assignments",
+            PLATFORM_PERMISSION_CODENAMES,
         )
 
     def test_permission_catalog_is_persisted_in_database(self):
