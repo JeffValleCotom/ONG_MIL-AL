@@ -20,7 +20,10 @@ import {
   changePassword,
 } from '../../auth/services/authService'
 
-function UserManagementPage({ onLogout }) {
+function UserManagementPage({
+  onLogout,
+  onChangeSpace,
+}) {
   const [users, setUsers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -267,7 +270,15 @@ async function handlePasswordChangeSubmit(
           >
             Nuevo usuario
           </button>
-
+          {onChangeSpace && (
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={onChangeSpace}
+            >
+              Cambiar espacio
+            </button>
+          )}
           <button
             className="button button--secondary"
             type="button"

@@ -62,7 +62,12 @@ function getStudentErrorMessage(error) {
 
 function StudentManagementPage({
   onLogout,
+  onChangeSpace,
   canManageStudents = false,
+  studentContext = '',
+  pageEyebrow = 'Gestión de estudiantes',
+  pageTitle = 'Estudiantes',
+  pageDescription = '',
 }) {
   const [students, setStudents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -113,7 +118,10 @@ function StudentManagementPage({
       setListError('')
 
       try {
-        const data = await getStudents(filters)
+        const data = await getStudents({
+          ...filters,
+          context: studentContext,
+        })
 
         if (isMounted) {
           setStudents(data)
@@ -136,10 +144,14 @@ function StudentManagementPage({
     return () => {
       isMounted = false
     }
-  }, [filters])
+  }, [filters, studentContext])
 
   async function refreshStudents() {
-    const data = await getStudents(filters)
+    const data = await getStudents({
+      ...filters,
+      context: studentContext,
+    })
+
     setStudents(data)
   }
 
@@ -320,29 +332,45 @@ function StudentManagementPage({
       <header className="students-page__header">
         <div>
           <p className="students-page__eyebrow">
-            Gestión de estudiantes
+            {pageEyebrow}
           </p>
 
           <h1>
-            Estudiantes
+            {pageTitle}
           </h1>
 
           <p className="students-page__description">
-            {canManageStudents
-              ? (
-                'Consulta y gestiona la información '
-                + 'general de los estudiantes '
-                + 'atendidos por MIL-AL.'
-              )
-              : (
-                'Consulta la información general de '
-                + 'los estudiantes atendidos por '
-                + 'MIL-AL.'
-              )}
+            {pageDescription || (
+              canManageStudents
+                ? (
+                    'Consulta y gestiona la información '
+                    + 'general de los estudiantes '
+                    + 'atendidos por MIL-AL.'
+                  )
+                : (
+                    'Consulta la información general de '
+                    + 'los estudiantes asignados.'
+                  )
+            )}
           </p>
         </div>
 
         <div className="students-page__actions">
+          {onChangeSpace && (
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={onChangeSpace}
+                disabled={
+                  isSubmitting
+                  || isUpdating
+                  || isChangingStatus
+                }
+              >
+                Cambiar espacio
+              </button>
+            )}
+
           <button
             className="button button--secondary"
             type="button"

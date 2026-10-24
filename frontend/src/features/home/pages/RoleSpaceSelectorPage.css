@@ -1,0 +1,117 @@
+.space-selector-page {
+  width: min(900px, calc(100% - 3rem));
+  margin: 0 auto;
+  padding: 3rem 0;
+}
+
+.space-selector-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  background: #ffffff;
+}
+
+.space-selector-card__header h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+}
+
+.space-selector-card__header p {
+  color: #64748b;
+}
+
+.space-selector-card__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.space-selector-card__description {
+  margin: 2rem 0 1rem;
+  color: #475569;
+}
+
+.space-selector-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.space-selector-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 130px;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  text-align: left;
+  color: #0f172a;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.space-selector-option:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.space-selector-option:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.space-selector-option strong {
+  font-size: 1rem;
+}
+
+.space-selector-option span {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.space-selector-empty {
+  margin-top: 2rem;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.space-selector-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.space-selector-logout {
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  background: #e2e8f0;
+  cursor: pointer;
+}
+
+@media (max-width: 560px) {
+  .space-selector-page {
+    width: min(100% - 2rem, 900px);
+    padding: 2rem 0;
+  }
+
+  .space-selector-card {
+    padding: 1.5rem;
+  }
+
+  .space-selector-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .space-selector-logout {
+    width: 100%;
+  }
+}
