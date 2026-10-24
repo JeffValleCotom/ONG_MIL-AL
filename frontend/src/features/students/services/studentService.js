@@ -4,6 +4,7 @@ import { apiRequest } from '../../../services/apiClient'
 export function getStudents({
   search = '',
   status = '',
+  context = '',
 } = {}) {
   const params = new URLSearchParams()
 
@@ -17,6 +18,10 @@ export function getStudents({
     params.set('status', status)
   }
 
+  if (context) {
+    params.set('context', context)
+  }
+
   const queryString = params.toString()
 
   return apiRequest(
@@ -25,7 +30,6 @@ export function getStudents({
       : ''}`
   )
 }
-
 
 export function getStudent(studentId) {
   return apiRequest(`/students/${studentId}/`)

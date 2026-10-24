@@ -92,9 +92,6 @@ function LoginPage({
 
       setAuthenticatedUser(session.user)
       onAuthenticated?.(session.user)
-
-      setAuthenticatedUser(session.user)
-      onAuthenticated?.(session.user)
     } catch (loginError) {
       setError(
         loginError.message ||
