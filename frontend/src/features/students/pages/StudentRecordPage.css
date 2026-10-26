@@ -92,6 +92,41 @@
   background: #fee2e2;
 }
 
+
+.student-record-card + .student-record-card {
+  margin-top: 1.5rem;
+}
+
+.student-record-card__header--actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.student-record-card__content {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.student-record-form-title {
+  margin: 0 0 1.25rem;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.student-record-academic-message {
+  margin: 1.5rem;
+}
+
+.student-record-academic-note {
+  margin: 1.5rem;
+  border-radius: 0.5rem;
+  padding: 0.8rem 1rem;
+  color: #475569;
+  background: #f8fafc;
+}
+
 @media (max-width: 720px) {
   .student-record-page {
     width: min(100% - 2rem, 900px);
@@ -112,5 +147,13 @@
 
   .student-record-grid > div:nth-child(odd) {
     border-right: 0;
+  }
+
+  .student-record-card__header--actions {
+    flex-direction: column;
+  }
+
+  .student-record-card__header--actions .button {
+    width: 100%;
   }
 }
