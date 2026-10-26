@@ -1,0 +1,103 @@
+.psychological-followup-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  padding: 0.7rem 0.8rem;
+  color: #0f172a;
+  background: #ffffff;
+  font: inherit;
+}
+
+.psychological-followup-form textarea:focus {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+  border-color: #2563eb;
+}
+
+.psychological-followup-form textarea:disabled {
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.psychological-followup-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.psychological-followup-item {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.psychological-followup-item:last-child {
+  border-bottom: 0;
+}
+
+.psychological-followup-item__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.psychological-followup-item__header h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.psychological-followup-item__header p {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+}
+
+.psychological-followup-details {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.psychological-followup-details div {
+  min-width: 0;
+}
+
+.psychological-followup-details dt {
+  margin-bottom: 0.3rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.psychological-followup-details dd {
+  margin: 0;
+  color: #334155;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.psychological-followup-item__meta {
+  margin: 1.25rem 0 0;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 720px) {
+  .psychological-followup-item__header {
+    flex-direction: column;
+  }
+
+  .psychological-followup-item__header .button {
+    width: 100%;
+  }
+
+  .psychological-followup-details {
+    grid-template-columns: 1fr;
+  }
+}

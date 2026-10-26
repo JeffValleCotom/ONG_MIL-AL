@@ -4,7 +4,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from apps.academic.models import AcademicFollowUp
-
+from apps.psychology.models import PsychologicalFollowUp
+from apps.therapy.models import TherapyFollowUp
 from apps.students.models import (
     Student,
     StudentProfessionalAssignment,
@@ -401,6 +402,45 @@ class StudentRecordAPITests(APITestCase):
             updated_by=author,
         )
 
+    def create_psychological_followup(
+        self,
+        student,
+        author,
+    ):
+        return PsychologicalFollowUp.objects.create(
+            student=student,
+            followup_date="2026-10-20",
+            reason="Seguimiento emocional",
+            observations=(
+                "Presenta estabilidad durante el seguimiento."
+            ),
+            emotional_behavioral_notes=(
+                "Respuesta emocional adecuada."
+            ),
+            recommendations=(
+                "Mantener seguimiento psicológico."
+            ),
+            created_by=author,
+            updated_by=author,
+        )
+
+    def create_therapy_followup(
+        self,
+        student,
+        author,
+    ):
+        return TherapyFollowUp.objects.create(
+            student=student,
+            followup_date="2026-10-20",
+            therapy_area="Terapia ocupacional",
+            objectives="Fortalecer autonomía funcional.",
+            activities="Actividades de coordinación.",
+            progress_notes="Presenta progreso favorable.",
+            recommendations="Continuar ejercicios.",
+            created_by=author,
+            updated_by=author,
+        )
+
     def test_docente_record_includes_academic_section(
         self,
     ):
@@ -555,4 +595,219 @@ class StudentRecordAPITests(APITestCase):
         self.assertNotIn(
             "academic",
             response.data["sections"],
+        )
+
+    def test_psychologist_record_only_includes_psychological_section(
+        self,
+    ):
+        psychologist = self.create_user_with_role(
+            username="psych_record_section",
+            role_name="PSICOLOGO",
+        )
+
+        self.assign_student(
+            professional=psychologist,
+            professional_role="PSICOLOGO",
+            student=self.student_ana,
+        )
+
+        followup = self.create_psychological_followup(
+            student=self.student_ana,
+            author=psychologist,
+        )
+
+        self.client.force_authenticate(
+            user=psychologist,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "PSICOLOGO",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "psychological",
+            response.data["sections"],
+        )
+
+        self.assertNotIn(
+            "academic",
+            response.data["sections"],
+        )
+
+        self.assertNotIn(
+            "therapy",
+            response.data["sections"],
+        )
+
+        followups = (
+            response.data["sections"]
+            ["psychological"]
+            ["followups"]
+        )
+
+        self.assertEqual(
+            len(followups),
+            1,
+        )
+
+        self.assertEqual(
+            followups[0]["id"],
+            followup.id,
+        )
+
+    def test_therapist_record_only_includes_therapy_section(
+        self,
+    ):
+        therapist = self.create_user_with_role(
+            username="therapist_record_section",
+            role_name="TERAPEUTA",
+        )
+
+        self.assign_student(
+            professional=therapist,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        followup = self.create_therapy_followup(
+            student=self.student_ana,
+            author=therapist,
+        )
+
+        self.client.force_authenticate(
+            user=therapist,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "therapy",
+            response.data["sections"],
+        )
+
+        self.assertNotIn(
+            "academic",
+            response.data["sections"],
+        )
+
+        self.assertNotIn(
+            "psychological",
+            response.data["sections"],
+        )
+
+        followups = (
+            response.data["sections"]
+            ["therapy"]
+            ["followups"]
+        )
+
+        self.assertEqual(
+            len(followups),
+            1,
+        )
+
+        self.assertEqual(
+            followups[0]["id"],
+            followup.id,
+        )
+
+    def test_multi_role_psychology_and_therapy_remain_isolated(
+        self,
+    ):
+        professional = User.objects.create_user(
+            username="multi_psych_therapy_record",
+            password="MilalRecord123!",
+        )
+
+        professional.groups.add(
+            Group.objects.get(name="PSICOLOGO"),
+            Group.objects.get(name="TERAPEUTA"),
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="PSICOLOGO",
+            student=self.student_ana,
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        self.create_psychological_followup(
+            student=self.student_ana,
+            author=professional,
+        )
+
+        self.create_therapy_followup(
+            student=self.student_ana,
+            author=professional,
+        )
+
+        self.client.force_authenticate(
+            user=professional,
+        )
+
+        psychology_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "PSICOLOGO",
+            },
+        )
+
+        self.assertEqual(
+            psychology_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "psychological",
+            psychology_response.data["sections"],
+        )
+
+        self.assertNotIn(
+            "therapy",
+            psychology_response.data["sections"],
+        )
+
+        therapy_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        self.assertEqual(
+            therapy_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "therapy",
+            therapy_response.data["sections"],
+        )
+
+        self.assertNotIn(
+            "psychological",
+            therapy_response.data["sections"],
         )

@@ -11,7 +11,22 @@ import {
 import { getStudentRecord }
   from '../services/studentService'
 import './StudentRecordPage.css'
-
+import PsychologicalFollowUpForm
+  from '../../psychology/components/PsychologicalFollowUpForm'
+import PsychologicalFollowUpList
+  from '../../psychology/components/PsychologicalFollowUpList'
+import {
+  createPsychologicalFollowUp,
+  updatePsychologicalFollowUp,
+} from '../../psychology/services/psychologyService'
+import TherapyFollowUpForm
+  from '../../therapy/components/TherapyFollowUpForm'
+import TherapyFollowUpList
+  from '../../therapy/components/TherapyFollowUpList'
+import {
+  createTherapyFollowUp,
+  updateTherapyFollowUp,
+} from '../../therapy/services/therapyService'
 
 function formatDate(value) {
   if (!value) {
@@ -98,6 +113,96 @@ function getAcademicErrorMessage(error) {
   )
 }
 
+function getPsychologicalErrorMessage(error) {
+  const data = error?.data
+
+  if (!data) {
+    return (
+      error?.message
+      || 'No fue posible guardar el seguimiento psicológico.'
+    )
+  }
+
+  const fieldOrder = [
+    'student_id',
+    'followup_date',
+    'reason',
+    'observations',
+    'emotional_behavioral_notes',
+    'recommendations',
+    'context',
+    'detail',
+  ]
+
+  for (const field of fieldOrder) {
+    const value = data[field]
+
+    if (
+      Array.isArray(value)
+      && value.length > 0
+    ) {
+      return value[0]
+    }
+
+    if (
+      typeof value === 'string'
+      && value
+    ) {
+      return value
+    }
+  }
+
+  return (
+    error?.message
+    || 'No fue posible guardar el seguimiento psicológico.'
+  )
+}
+
+function getTherapyErrorMessage(error) {
+  const data = error?.data
+
+  if (!data) {
+    return (
+      error?.message
+      || 'No fue posible guardar el seguimiento terapéutico.'
+    )
+  }
+
+  const fieldOrder = [
+    'student_id',
+    'followup_date',
+    'therapy_area',
+    'objectives',
+    'activities',
+    'progress_notes',
+    'recommendations',
+    'context',
+    'detail',
+  ]
+
+  for (const field of fieldOrder) {
+    const value = data[field]
+
+    if (
+      Array.isArray(value)
+      && value.length > 0
+    ) {
+      return value[0]
+    }
+
+    if (
+      typeof value === 'string'
+      && value
+    ) {
+      return value
+    }
+  }
+
+  return (
+    error?.message
+    || 'No fue posible guardar el seguimiento terapéutico.'
+  )
+}
 
 function StudentRecordPage({
   studentId,
@@ -131,6 +236,56 @@ function StudentRecordPage({
   const [
     academicSuccess,
     setAcademicSuccess,
+  ] = useState('')
+
+  const [
+    isPsychologicalFormOpen,
+    setIsPsychologicalFormOpen,
+  ] = useState(false)
+
+  const [
+    editingPsychologicalFollowUp,
+    setEditingPsychologicalFollowUp,
+  ] = useState(null)
+
+  const [
+    isSavingPsychological,
+    setIsSavingPsychological,
+  ] = useState(false)
+
+  const [
+    psychologicalError,
+    setPsychologicalError,
+  ] = useState('')
+
+  const [
+    psychologicalSuccess,
+    setPsychologicalSuccess,
+  ] = useState('')
+
+  const [
+    isTherapyFormOpen,
+    setIsTherapyFormOpen,
+  ] = useState(false)
+
+  const [
+    editingTherapyFollowUp,
+    setEditingTherapyFollowUp,
+  ] = useState(null)
+
+  const [
+    isSavingTherapy,
+    setIsSavingTherapy,
+  ] = useState(false)
+
+  const [
+    therapyError,
+    setTherapyError,
+  ] = useState('')
+
+  const [
+    therapySuccess,
+    setTherapySuccess,
   ] = useState('')
 
   useEffect(() => {
@@ -256,11 +411,181 @@ function StudentRecordPage({
     }
   }
 
+  function handleNewPsychologicalFollowUp() {
+    setEditingPsychologicalFollowUp(null)
+    setPsychologicalError('')
+    setPsychologicalSuccess('')
+    setIsPsychologicalFormOpen(true)
+  }
+
+  function handlePsychologicalEdit(followUp) {
+    setEditingPsychologicalFollowUp(followUp)
+    setPsychologicalError('')
+    setPsychologicalSuccess('')
+    setIsPsychologicalFormOpen(true)
+  }
+
+  function handlePsychologicalCancel() {
+    if (isSavingPsychological) {
+      return
+    }
+
+    setEditingPsychologicalFollowUp(null)
+    setPsychologicalError('')
+    setIsPsychologicalFormOpen(false)
+  }
+
+  async function handlePsychologicalSubmit(
+    followUpData
+  ) {
+    if (isSavingPsychological) {
+      return
+    }
+
+    const isEditing = Boolean(
+      editingPsychologicalFollowUp
+    )
+
+    setIsSavingPsychological(true)
+    setPsychologicalError('')
+    setPsychologicalSuccess('')
+
+    try {
+      if (isEditing) {
+        await updatePsychologicalFollowUp({
+          followUpId:
+            editingPsychologicalFollowUp.id,
+          context: studentContext,
+          followUpData,
+        })
+      } else {
+        await createPsychologicalFollowUp({
+          studentId,
+          context: studentContext,
+          followUpData,
+        })
+      }
+
+      setEditingPsychologicalFollowUp(null)
+      setIsPsychologicalFormOpen(false)
+
+      setPsychologicalSuccess(
+        isEditing
+          ? 'Seguimiento psicológico actualizado correctamente.'
+          : 'Seguimiento psicológico registrado correctamente.'
+      )
+
+      try {
+        await refreshRecord()
+      } catch {
+        setPsychologicalError(
+          'El seguimiento fue guardado, pero no fue '
+          + 'posible actualizar la vista del expediente.'
+        )
+      }
+    } catch (saveError) {
+      setPsychologicalError(
+        getPsychologicalErrorMessage(saveError)
+      )
+    } finally {
+      setIsSavingPsychological(false)
+    }
+  }
+
+  function handleNewTherapyFollowUp() {
+    setEditingTherapyFollowUp(null)
+    setTherapyError('')
+    setTherapySuccess('')
+    setIsTherapyFormOpen(true)
+  }
+
+  function handleTherapyEdit(followUp) {
+    setEditingTherapyFollowUp(followUp)
+    setTherapyError('')
+    setTherapySuccess('')
+    setIsTherapyFormOpen(true)
+  }
+
+  function handleTherapyCancel() {
+    if (isSavingTherapy) {
+      return
+    }
+
+    setEditingTherapyFollowUp(null)
+    setTherapyError('')
+    setIsTherapyFormOpen(false)
+  }
+
+  async function handleTherapySubmit(
+    followUpData
+  ) {
+    if (isSavingTherapy) {
+      return
+    }
+
+    const isEditing = Boolean(
+      editingTherapyFollowUp
+    )
+
+    setIsSavingTherapy(true)
+    setTherapyError('')
+    setTherapySuccess('')
+
+    try {
+      if (isEditing) {
+        await updateTherapyFollowUp({
+          followUpId:
+            editingTherapyFollowUp.id,
+          context: studentContext,
+          followUpData,
+        })
+      } else {
+        await createTherapyFollowUp({
+          studentId,
+          context: studentContext,
+          followUpData,
+        })
+      }
+
+      setEditingTherapyFollowUp(null)
+      setIsTherapyFormOpen(false)
+
+      setTherapySuccess(
+        isEditing
+          ? 'Seguimiento terapéutico actualizado correctamente.'
+          : 'Seguimiento terapéutico registrado correctamente.'
+      )
+
+      try {
+        await refreshRecord()
+      } catch {
+        setTherapyError(
+          'El seguimiento fue guardado, pero no fue '
+          + 'posible actualizar la vista del expediente.'
+        )
+      }
+    } catch (saveError) {
+      setTherapyError(
+        getTherapyErrorMessage(saveError)
+      )
+    } finally {
+      setIsSavingTherapy(false)
+    }
+  }
+
   const general = record?.sections?.general
   const academic = record?.sections?.academic
+  const psychological =
+    record?.sections?.psychological
+  const therapy =
+    record?.sections?.therapy
 
   const academicFollowUps =
     academic?.followups ?? []
+  const psychologicalFollowUps =
+    psychological?.followups ?? []
+  const therapyFollowUps =
+    therapy?.followups ?? []
 
   return (
     <main className="student-record-page">
@@ -287,7 +612,11 @@ function StudentRecordPage({
           className="button button--secondary"
           type="button"
           onClick={onBack}
-          disabled={isSavingAcademic}
+          disabled={
+            isSavingAcademic
+            || isSavingPsychological
+            || isSavingTherapy
+          }
         >
           Volver a estudiantes
         </button>
@@ -497,6 +826,225 @@ function StudentRecordPage({
               />
             </section>
           )}
+
+          {psychological && (
+            <section
+              className="student-record-card"
+              aria-labelledby="psychological-section-title"
+            >
+              <div
+                className={
+                  'student-record-card__header '
+                  + 'student-record-card__header--actions'
+                }
+              >
+                <div>
+                  <h2 id="psychological-section-title">
+                    Información psicológica
+                  </h2>
+
+                  <p>
+                    Historial de seguimiento psicológico
+                    del estudiante.
+                  </p>
+                </div>
+
+                {general.is_active
+                  && !isPsychologicalFormOpen && (
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    onClick={
+                      handleNewPsychologicalFollowUp
+                    }
+                  >
+                    Registrar seguimiento
+                  </button>
+                )}
+              </div>
+
+              {!general.is_active && (
+                <div className="student-record-academic-note">
+                  El estudiante está inactivo. No se
+                  pueden registrar nuevos seguimientos
+                  psicológicos.
+                </div>
+              )}
+
+              {psychologicalSuccess && (
+                <div
+                  className={
+                    'form-message '
+                    + 'form-message--success '
+                    + 'student-record-academic-message'
+                  }
+                  role="status"
+                >
+                  {psychologicalSuccess}
+                </div>
+              )}
+
+              {psychologicalError
+                && !isPsychologicalFormOpen && (
+                <div
+                  className={
+                    'form-message '
+                    + 'form-message--error '
+                    + 'student-record-academic-message'
+                  }
+                  role="alert"
+                >
+                  {psychologicalError}
+                </div>
+              )}
+
+              {isPsychologicalFormOpen && (
+                <div className="student-record-card__content">
+                  <h3 className="student-record-form-title">
+                    {editingPsychologicalFollowUp
+                      ? 'Editar seguimiento psicológico'
+                      : 'Nuevo seguimiento psicológico'}
+                  </h3>
+
+                  <PsychologicalFollowUpForm
+                    key={
+                      editingPsychologicalFollowUp
+                        ? `edit-${editingPsychologicalFollowUp.id}`
+                        : 'new'
+                    }
+                    initialFollowUp={
+                      editingPsychologicalFollowUp
+                    }
+                    onSubmit={
+                      handlePsychologicalSubmit
+                    }
+                    onCancel={
+                      handlePsychologicalCancel
+                    }
+                    isSubmitting={
+                      isSavingPsychological
+                    }
+                    error={psychologicalError}
+                  />
+                </div>
+              )}
+
+              <PsychologicalFollowUpList
+                followups={psychologicalFollowUps}
+                onEdit={handlePsychologicalEdit}
+              />
+            </section>
+          )}
+
+          {therapy && (
+            <section
+              className="student-record-card"
+              aria-labelledby="therapy-section-title"
+            >
+              <div
+                className={
+                  'student-record-card__header '
+                  + 'student-record-card__header--actions'
+                }
+              >
+                <div>
+                  <h2 id="therapy-section-title">
+                    Información terapéutica
+                  </h2>
+
+                  <p>
+                    Historial de seguimiento terapéutico
+                    del estudiante.
+                  </p>
+                </div>
+
+                {general.is_active
+                  && !isTherapyFormOpen && (
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    onClick={
+                      handleNewTherapyFollowUp
+                    }
+                  >
+                    Registrar seguimiento
+                  </button>
+                )}
+              </div>
+
+              {!general.is_active && (
+                <div className="student-record-academic-note">
+                  El estudiante está inactivo. No se
+                  pueden registrar nuevos seguimientos
+                  terapéuticos.
+                </div>
+              )}
+
+              {therapySuccess && (
+                <div
+                  className={
+                    'form-message '
+                    + 'form-message--success '
+                    + 'student-record-academic-message'
+                  }
+                  role="status"
+                >
+                  {therapySuccess}
+                </div>
+              )}
+
+              {therapyError
+                && !isTherapyFormOpen && (
+                <div
+                  className={
+                    'form-message '
+                    + 'form-message--error '
+                    + 'student-record-academic-message'
+                  }
+                  role="alert"
+                >
+                  {therapyError}
+                </div>
+              )}
+
+              {isTherapyFormOpen && (
+                <div className="student-record-card__content">
+                  <h3 className="student-record-form-title">
+                    {editingTherapyFollowUp
+                      ? 'Editar seguimiento terapéutico'
+                      : 'Nuevo seguimiento terapéutico'}
+                  </h3>
+
+                  <TherapyFollowUpForm
+                    key={
+                      editingTherapyFollowUp
+                        ? `edit-${editingTherapyFollowUp.id}`
+                        : 'new'
+                    }
+                    initialFollowUp={
+                      editingTherapyFollowUp
+                    }
+                    onSubmit={
+                      handleTherapySubmit
+                    }
+                    onCancel={
+                      handleTherapyCancel
+                    }
+                    isSubmitting={
+                      isSavingTherapy
+                    }
+                    error={therapyError}
+                  />
+                </div>
+              )}
+
+              <TherapyFollowUpList
+                followups={therapyFollowUps}
+                onEdit={handleTherapyEdit}
+              />
+            </section>
+          )}
+
         </>
       )}
     </main>

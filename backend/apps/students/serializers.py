@@ -7,6 +7,12 @@ from .models import Student, StudentProfessionalAssignment
 from apps.academic.serializers import (
     AcademicRecordSectionSerializer,
 )
+from apps.psychology.serializers import (
+    PsychologicalRecordSectionSerializer,
+)
+from apps.therapy.serializers import (
+    TherapyRecordSectionSerializer,
+)
 
 User = get_user_model()
 
@@ -165,6 +171,16 @@ class StudentRecordSectionsSerializer(
     )
 
     academic = AcademicRecordSectionSerializer(
+        read_only=True,
+        required=False,
+    )
+
+    psychological = PsychologicalRecordSectionSerializer(
+        read_only=True,
+        required=False,
+    )
+
+    therapy = TherapyRecordSectionSerializer(
         read_only=True,
         required=False,
     )

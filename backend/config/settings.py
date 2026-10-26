@@ -71,6 +71,8 @@ INSTALLED_APPS = [
     "apps.users.apps.UsersConfig",
     "apps.students.apps.StudentsConfig",
     "apps.academic.apps.AcademicConfig",
+    "apps.psychology.apps.PsychologyConfig",
+    "apps.therapy.apps.TherapyConfig",
 ]
 
 MIDDLEWARE = [
