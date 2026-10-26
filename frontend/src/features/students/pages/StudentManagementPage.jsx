@@ -11,6 +11,8 @@ import StudentRegistrationForm
   from '../components/StudentRegistrationForm'
 import StudentTable
   from '../components/StudentTable'
+import StudentRecordPage
+  from './StudentRecordPage'
 import {
   activateStudent,
   createStudent,
@@ -108,6 +110,8 @@ function StudentManagementPage({
     status: '',
   })
   const [assignmentStudent, setAssignmentStudent] =
+    useState(null)
+  const [recordStudent, setRecordStudent] =
     useState(null)
 
   useEffect(() => {
@@ -207,6 +211,16 @@ function StudentManagementPage({
     setSuccess('')
   }
 
+  function handleViewRecord(student) {
+    setRecordStudent(student)
+    setActionError('')
+    setSuccess('')
+  }
+
+
+  function handleRecordBack() {
+    setRecordStudent(null)
+  }
 
   function handleAssignmentsClose() {
     setAssignmentStudent(null)
@@ -326,6 +340,16 @@ function StudentManagementPage({
   const statusAction = statusStudent?.is_active
     ? 'desactivar'
     : 'activar'
+
+    if (recordStudent) {
+      return (
+        <StudentRecordPage
+          studentId={recordStudent.id}
+          studentContext={studentContext}
+          onBack={handleRecordBack}
+        />
+      )
+    }
 
   return (
     <main className="students-page">
@@ -503,6 +527,7 @@ function StudentManagementPage({
           <StudentTable
             students={students}
             canManageStudents={canManageStudents}
+            onViewRecord={handleViewRecord}
             onEdit={handleEdit}
             onToggleStatus={handleToggleStatus}
             onManageAssignments={handleManageAssignments}

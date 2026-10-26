@@ -35,6 +35,23 @@ export function getStudent(studentId) {
   return apiRequest(`/students/${studentId}/`)
 }
 
+export function getStudentRecord(
+  studentId,
+  context
+) {
+  const params = new URLSearchParams()
+
+  if (context) {
+    params.set('context', context)
+  }
+
+  const queryString = params.toString()
+
+  return apiRequest(
+    `/students/${studentId}/record/`
+    + `${queryString ? `?${queryString}` : ''}`
+  )
+}
 
 export function createStudent(studentData) {
   return apiRequest('/students/', {
