@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     # Aplicaciones MIL-AL
     "apps.users.apps.UsersConfig",
     "apps.students.apps.StudentsConfig",
+    "apps.academic.apps.AcademicConfig",
 ]
 
 MIDDLEWARE = [

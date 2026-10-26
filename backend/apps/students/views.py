@@ -21,6 +21,8 @@ from .serializers import (
 )
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from apps.academic.access import has_docente_permission
+
 
 User = get_user_model()
 
@@ -227,13 +229,33 @@ class StudentViewSet(
 
         context = self.get_student_access_context()
 
+        sections = {
+            "general": student,
+        }
+
+        if (
+            context == "DOCENTE"
+            and has_docente_permission(
+                request.user,
+                "view_academic_followups",
+            )
+        ):
+            sections["academic"] = {
+                "followups": (
+                    student.academic_followups
+                    .select_related(
+                        "created_by",
+                        "updated_by",
+                    )
+                    .all()
+                ),
+            }
+
         serializer = StudentRecordSerializer(
             {
                 "student_id": student.id,
                 "context": context,
-                "sections": {
-                    "general": student,
-                },
+                "sections": sections,
             }
         )
 

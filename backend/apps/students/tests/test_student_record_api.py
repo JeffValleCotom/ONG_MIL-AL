@@ -3,6 +3,7 @@ from django.contrib.auth.models import Group
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
+from apps.academic.models import AcademicFollowUp
 
 from apps.students.models import (
     Student,
@@ -373,4 +374,185 @@ class StudentRecordAPITests(APITestCase):
                 status.HTTP_401_UNAUTHORIZED,
                 status.HTTP_403_FORBIDDEN,
             ],
+        )
+
+    def create_academic_followup(
+            self,
+            student,
+            author,
+        ):
+
+        return AcademicFollowUp.objects.create(
+            student=student,
+            followup_date="2026-10-20",
+            academic_period="2026 - Ciclo 2",
+            subject="Matemática",
+            observations=(
+                "Presenta avances en razonamiento lógico."
+            ),
+            strengths="Participación constante.",
+            areas_for_improvement=(
+                "Reforzar operaciones básicas."
+            ),
+            recommendations=(
+                "Continuar con ejercicios prácticos."
+            ),
+            created_by=author,
+            updated_by=author,
+        )
+
+    def test_docente_record_includes_academic_section(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_record_academic",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        followup = self.create_academic_followup(
+            student=self.student_ana,
+            author=docente,
+        )
+
+        self.client.force_authenticate(
+            user=docente
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "DOCENTE",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "academic",
+            response.data["sections"],
+        )
+
+        followups = (
+            response.data["sections"]
+            ["academic"]
+            ["followups"]
+        )
+
+        self.assertEqual(
+            len(followups),
+            1,
+        )
+
+        self.assertEqual(
+            followups[0]["id"],
+            followup.id,
+        )
+
+        self.assertEqual(
+            followups[0]["subject"],
+            "Matemática",
+        )
+
+    def test_responsible_record_excludes_academic_section(
+        self,
+    ):
+        responsible = self.create_user_with_role(
+            username="responsable_record_no_academic",
+            role_name="RESPONSABLE_INSTITUCIONAL",
+        )
+
+        docente = self.create_user_with_role(
+            username="docente_record_author",
+            role_name="DOCENTE",
+        )
+
+        self.create_academic_followup(
+            student=self.student_ana,
+            author=docente,
+        )
+
+        self.client.force_authenticate(
+            user=responsible
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "RESPONSABLE_INSTITUCIONAL",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertNotIn(
+            "academic",
+            response.data["sections"],
+        )
+
+    def test_multi_role_psychology_context_excludes_academic_section(
+        self,
+    ):
+        professional = User.objects.create_user(
+            username="multi_record_academic_isolation",
+            password="MilalRecord123!",
+        )
+
+        professional.groups.add(
+            Group.objects.get(name="DOCENTE"),
+            Group.objects.get(name="PSICOLOGO"),
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="PSICOLOGO",
+            student=self.student_ana,
+        )
+
+        self.create_academic_followup(
+            student=self.student_ana,
+            author=professional,
+        )
+
+        self.client.force_authenticate(
+            user=professional
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "PSICOLOGO",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            response.data["context"],
+            "PSICOLOGO",
+        )
+
+        self.assertNotIn(
+            "academic",
+            response.data["sections"],
         )

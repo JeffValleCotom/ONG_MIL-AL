@@ -4,6 +4,10 @@ from rest_framework import serializers
 
 from .models import Student, StudentProfessionalAssignment
 
+from apps.academic.serializers import (
+    AcademicRecordSectionSerializer,
+)
+
 User = get_user_model()
 
 
@@ -158,6 +162,11 @@ class StudentRecordSectionsSerializer(
 ):
     general = StudentRecordGeneralSerializer(
         read_only=True,
+    )
+
+    academic = AcademicRecordSectionSerializer(
+        read_only=True,
+        required=False,
     )
 
 
