@@ -18,4 +18,12 @@ urlpatterns = [
         "api/v1/",
         include("apps.academic.urls"),
     ),
+    path(
+        "api/v1/",
+        include("apps.psychology.urls"),
+    ),
+    path(
+        "api/v1/",
+        include("apps.therapy.urls"),
+    ),
 ]

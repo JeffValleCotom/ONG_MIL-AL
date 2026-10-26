@@ -22,7 +22,12 @@ from .serializers import (
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from apps.academic.access import has_docente_permission
-
+from apps.psychology.access import (
+    has_psychologist_permission,
+)
+from apps.therapy.access import (
+    has_therapist_permission,
+)
 
 User = get_user_model()
 
@@ -243,6 +248,41 @@ class StudentViewSet(
             sections["academic"] = {
                 "followups": (
                     student.academic_followups
+                    .select_related(
+                        "created_by",
+                        "updated_by",
+                    )
+                    .all()
+                ),
+            }
+        if (
+            context == "PSICOLOGO"
+            and has_psychologist_permission(
+                request.user,
+                "view_psychological_followups",
+            )
+        ):
+            sections["psychological"] = {
+                "followups": (
+                    student.psychological_followups
+                    .select_related(
+                        "created_by",
+                        "updated_by",
+                    )
+                    .all()
+                ),
+            }
+
+        if (
+            context == "TERAPEUTA"
+            and has_therapist_permission(
+                request.user,
+                "view_therapy_followups",
+            )
+        ):
+            sections["therapy"] = {
+                "followups": (
+                    student.therapy_followups
                     .select_related(
                         "created_by",
                         "updated_by",
