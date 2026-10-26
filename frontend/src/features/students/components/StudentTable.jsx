@@ -16,6 +16,7 @@ function formatDate(value) {
 function StudentTable({
   students,
   canManageStudents = false,
+  onViewRecord,
   onEdit,
   onToggleStatus,
   onManageAssignments,
@@ -27,6 +28,10 @@ function StudentTable({
       </div>
     )
   }
+
+  const hasActions =
+    Boolean(onViewRecord)
+    || canManageStudents
 
   return (
     <div className="table-container">
@@ -53,7 +58,7 @@ function StudentTable({
               Estado
             </th>
 
-            {canManageStudents && (
+            {hasActions && (
               <th scope="col">
                 Acciones
               </th>
@@ -106,42 +111,60 @@ function StudentTable({
                 </span>
               </td>
 
-              {canManageStudents && (
+              {hasActions && (
                 <td>
                   <div className="student-actions">
-                    <button
-                      className="button button--secondary"
-                      type="button"
-                      onClick={() => {
-                        onManageAssignments?.(student)
-                      }}
-                    >
-                      Asignaciones
-                    </button>
+                    {onViewRecord && (
+                      <button
+                        className="button button--primary"
+                        type="button"
+                        onClick={() => {
+                          onViewRecord(student)
+                        }}
+                      >
+                        Expediente
+                      </button>
+                    )}
 
-                    <button
-                      className="button button--secondary"
-                      type="button"
-                      onClick={() => onEdit?.(student)}
-                    >
-                      Editar
-                    </button>
+                    {canManageStudents && (
+                      <>
+                        <button
+                          className="button button--secondary"
+                          type="button"
+                          onClick={() => {
+                            onManageAssignments?.(student)
+                          }}
+                        >
+                          Asignaciones
+                        </button>
 
-                    <button
-                      className={
-                        student.is_active
-                          ? 'button button--danger'
-                          : 'button button--primary'
-                      }
-                      type="button"
-                      onClick={() => {
-                        onToggleStatus?.(student)
-                      }}
-                    >
-                      {student.is_active
-                        ? 'Desactivar'
-                        : 'Activar'}
-                    </button>
+                        <button
+                          className="button button--secondary"
+                          type="button"
+                          onClick={() => {
+                            onEdit?.(student)
+                          }}
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          className={
+                            student.is_active
+                              ? 'button button--danger'
+                              : 'button button--primary'
+                          }
+                          type="button"
+                          onClick={() => {
+                            onToggleStatus?.(student)
+                          }}
+                        >
+                          {student.is_active
+                            ? 'Desactivar'
+                            : 'Activar'}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               )}

@@ -138,6 +138,43 @@ class StudentSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class StudentRecordGeneralSerializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = Student
+        fields = [
+            "institutional_code",
+            "first_name",
+            "last_name",
+            "date_of_birth",
+            "admission_date",
+            "is_active",
+        ]
+
+
+class StudentRecordSectionsSerializer(
+    serializers.Serializer
+):
+    general = StudentRecordGeneralSerializer(
+        read_only=True,
+    )
+
+
+class StudentRecordSerializer(
+    serializers.Serializer
+):
+    student_id = serializers.IntegerField(
+        read_only=True,
+    )
+    context = serializers.CharField(
+        read_only=True,
+    )
+    sections = StudentRecordSectionsSerializer(
+        read_only=True,
+    )
+
+
 class AssignmentUserSummarySerializer(
     serializers.ModelSerializer
 ):

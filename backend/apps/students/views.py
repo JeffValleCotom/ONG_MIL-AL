@@ -16,6 +16,7 @@ from .models import Student, StudentProfessionalAssignment
 from .serializers import (
     AssignmentUserSummarySerializer,
     StudentProfessionalAssignmentSerializer,
+    StudentRecordSerializer,
     StudentSerializer,
 )
 from django.contrib.auth import get_user_model
@@ -63,6 +64,7 @@ class StudentViewSet(
     required_permission_map = {
         "list": "view_students",
         "retrieve": "view_students",
+        "record": "view_students",
         "create": "manage_students",
         "update": "manage_students",
         "partial_update": "manage_students",
@@ -214,6 +216,31 @@ class StudentViewSet(
             )
 
         return queryset
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="record",
+    )
+    def record(self, request, pk=None):
+        student = self.get_object()
+
+        context = self.get_student_access_context()
+
+        serializer = StudentRecordSerializer(
+            {
+                "student_id": student.id,
+                "context": context,
+                "sections": {
+                    "general": student,
+                },
+            }
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
+        )
 
     @action(
         detail=True,

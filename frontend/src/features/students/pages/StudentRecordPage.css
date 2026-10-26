@@ -1,0 +1,116 @@
+.student-record-page {
+  width: min(900px, calc(100% - 3rem));
+  margin: 0 auto;
+  padding: 3rem 0;
+}
+
+.student-record-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.student-record-page__header h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+}
+
+.student-record-page__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.student-record-page__description {
+  margin: 0.75rem 0 0;
+  color: #64748b;
+}
+
+.student-record-card {
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #ffffff;
+}
+
+.student-record-card__header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.student-record-card__header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.student-record-card__header p {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+}
+
+.student-record-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.student-record-grid > div {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.student-record-grid > div:nth-child(odd) {
+  border-right: 1px solid #e2e8f0;
+}
+
+.student-record-grid dt {
+  margin-bottom: 0.35rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.student-record-grid dd {
+  margin: 0;
+  color: #0f172a;
+}
+
+.student-record-message {
+  padding: 2rem 1.5rem;
+  color: #64748b;
+}
+
+.student-record-message--error {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+@media (max-width: 720px) {
+  .student-record-page {
+    width: min(100% - 2rem, 900px);
+    padding: 2rem 0;
+  }
+
+  .student-record-page__header {
+    flex-direction: column;
+  }
+
+  .student-record-page__header .button {
+    width: 100%;
+  }
+
+  .student-record-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-record-grid > div:nth-child(odd) {
+    border-right: 0;
+  }
+}
