@@ -82,6 +82,12 @@ class StudentViewSet(
     }
 
     def get_required_permission(self):
+        if self.action == "family_members":
+            if self.request.method == "GET":
+                return "view_students"
+
+            return "manage_students"
+
         return self.required_permission_map.get(
             self.action
         )
@@ -120,16 +126,23 @@ class StudentViewSet(
 
             return requested_context
 
+        is_family_write = (
+            self.action == "family_members"
+            and self.request.method == "POST"
+        )
+
         if (
-            self.action
-            in {
-                "create",
-                "update",
-                "partial_update",
-                "activate",
-                "deactivate",
-                "family_members",
-            }
+            (
+                self.action
+                in {
+                    "create",
+                    "update",
+                    "partial_update",
+                    "activate",
+                    "deactivate",
+                }
+                or is_family_write
+            )
             and "RESPONSABLE_INSTITUCIONAL" in user_roles
         ):
             return "RESPONSABLE_INSTITUCIONAL"
@@ -229,13 +242,40 @@ class StudentViewSet(
 
     @action(
         detail=True,
-        methods=["post"],
+        methods=["get", "post"],
         url_path="family-members",
     )
     def family_members(self, request, pk=None):
         student = self.get_object()
 
         context = self.get_student_access_context()
+
+        if request.method == "GET":
+            if (
+                context != "RESPONSABLE_INSTITUCIONAL"
+                or not has_responsible_permission(
+                    request.user,
+                    "view_students",
+                )
+            ):
+                raise exceptions.PermissionDenied(
+                    "No tiene permiso para consultar "
+                    "la información familiar."
+                )
+
+            family_members = student.family_members.all()
+
+            serializer = StudentFamilyMemberSerializer(
+                family_members,
+                many=True,
+            )
+
+            return Response(
+                {
+                    "items": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
 
         if (
             context != "RESPONSABLE_INSTITUCIONAL"
@@ -314,6 +354,17 @@ class StudentViewSet(
         sections = {
             "general": student,
         }
+
+        if (
+            context == "RESPONSABLE_INSTITUCIONAL"
+            and has_responsible_permission(
+                request.user,
+                "view_students",
+            )
+        ):
+            sections["family"] = {
+                "items": student.family_members.all(),
+            }
 
         if (
             context == "RESPONSABLE_INSTITUCIONAL"

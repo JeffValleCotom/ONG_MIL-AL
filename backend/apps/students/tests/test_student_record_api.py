@@ -211,12 +211,18 @@ class StudentRecordAPITests(APITestCase):
             set(response.data["sections"].keys()),
             {
                 "general",
+                "family",
                 "assignments",
-            },
+            }
         )
 
         self.assertEqual(
             response.data["sections"]["assignments"]["items"],
+            [],
+        )
+
+        self.assertEqual(
+            response.data["sections"]["family"]["items"],
             [],
         )
 

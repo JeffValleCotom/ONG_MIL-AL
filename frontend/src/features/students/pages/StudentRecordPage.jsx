@@ -17,6 +17,8 @@ import StudentEditForm
   from '../components/StudentEditForm'
 import StudentFamilyMemberForm
   from '../components/StudentFamilyMemberForm'
+import StudentFamilyMemberList
+  from '../components/StudentFamilyMemberList'
 import './StudentRecordPage.css'
 import PsychologicalFollowUpForm
   from '../../psychology/components/PsychologicalFollowUpForm'
@@ -554,6 +556,8 @@ function StudentRecordPage({
         studentContext
       )
 
+      await refreshRecord()
+
       setIsFamilyFormOpen(false)
       setFamilySuccess(
         'Familiar registrado correctamente.'
@@ -809,6 +813,7 @@ function StudentRecordPage({
     capabilities.manage_family
   )
   const general = record?.sections?.general
+  const family = record?.sections?.family
   const assignments =
     record?.sections?.assignments
   const academic = record?.sections?.academic
@@ -819,6 +824,8 @@ function StudentRecordPage({
 
   const assignmentItems =
     assignments?.items ?? []
+  const familyItems =
+    family?.items ?? []
 
   const academicFollowUps =
     academic?.followups ?? []
@@ -1014,7 +1021,7 @@ function StudentRecordPage({
 
           </section>
 
-          {canManageFamily && (
+          {family && (
             <section
               className="student-record-card"
               aria-labelledby="family-section-title"
@@ -1031,12 +1038,11 @@ function StudentRecordPage({
                   </h2>
 
                   <p>
-                    Registro de familiares y contactos del
-                    estudiante.
+                    Familiares y contactos asociados al estudiante.
                   </p>
                 </div>
 
-                {!isFamilyFormOpen && (
+                {canManageFamily && !isFamilyFormOpen && (
                   <button
                     className="button button--primary"
                     type="button"
@@ -1065,7 +1071,7 @@ function StudentRecordPage({
                 </div>
               )}
 
-              {isFamilyFormOpen && (
+              {canManageFamily && isFamilyFormOpen && (
                 <div className="student-record-card__content">
                   <h3 className="student-record-form-title">
                     Nuevo familiar
@@ -1079,6 +1085,12 @@ function StudentRecordPage({
                     error={familyError}
                   />
                 </div>
+              )}
+
+              {!isFamilyFormOpen && (
+                <StudentFamilyMemberList
+                  familyMembers={familyItems}
+                />
               )}
             </section>
           )}
