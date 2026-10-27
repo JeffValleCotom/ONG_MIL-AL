@@ -433,3 +433,82 @@ class TherapyFollowUpAPITests(APITestCase):
             response.status_code,
             status.HTTP_405_METHOD_NOT_ALLOWED,
         )
+
+    def test_therapist_cannot_access_other_therapist_followup(
+        self,
+    ):
+        StudentProfessionalAssignment.objects.create(
+            student=self.assigned_student,
+            professional=self.other_therapist,
+            professional_role="TERAPEUTA",
+            assigned_by=self.responsible,
+            is_active=True,
+        )
+
+        other_followup = TherapyFollowUp.objects.create(
+            student=self.assigned_student,
+            followup_date=date(2026, 2, 5),
+            therapy_area="Terapia ocupacional",
+            objectives="Seguimiento confidencial.",
+            progress_notes=(
+                "Información registrada por otro terapeuta."
+            ),
+            created_by=self.other_therapist,
+            updated_by=self.other_therapist,
+        )
+
+        self.authenticate(self.therapist)
+
+        list_response = self.client.get(
+            self.therapy_context_url()
+        )
+
+        self.assertEqual(
+            list_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        returned_ids = {
+            item["id"]
+            for item in list_response.data
+        }
+
+        self.assertIn(
+            self.assigned_followup.id,
+            returned_ids,
+        )
+        self.assertNotIn(
+            other_followup.id,
+            returned_ids,
+        )
+
+        detail_url = reverse(
+            "therapy-followup-detail",
+            kwargs={
+                "pk": other_followup.pk,
+            },
+        )
+
+        detail_response = self.client.get(
+            f"{detail_url}?context=TERAPEUTA"
+        )
+
+        self.assertEqual(
+            detail_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        patch_response = self.client.patch(
+            f"{detail_url}?context=TERAPEUTA",
+            {
+                "progress_notes": (
+                    "Intento de modificación no autorizado."
+                ),
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            patch_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )

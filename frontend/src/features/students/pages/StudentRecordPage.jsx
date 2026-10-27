@@ -27,6 +27,8 @@ import {
   createTherapyFollowUp,
   updateTherapyFollowUp,
 } from '../../therapy/services/therapyService'
+import StudentRecordAssignmentHistory
+  from '../components/StudentRecordAssignmentHistory'
 
 function formatDate(value) {
   if (!value) {
@@ -574,11 +576,16 @@ function StudentRecordPage({
   }
 
   const general = record?.sections?.general
+  const assignments =
+    record?.sections?.assignments
   const academic = record?.sections?.academic
   const psychological =
     record?.sections?.psychological
   const therapy =
     record?.sections?.therapy
+
+  const assignmentItems =
+    assignments?.items ?? []
 
   const academicFollowUps =
     academic?.followups ?? []
@@ -714,6 +721,28 @@ function StudentRecordPage({
               </div>
             </dl>
           </section>
+
+          {assignments && (
+            <section
+              className="student-record-card"
+              aria-labelledby="assignments-section-title"
+            >
+              <div className="student-record-card__header">
+                <h2 id="assignments-section-title">
+                  Asignaciones profesionales
+                </h2>
+
+                <p>
+                  Historial de profesionales asignados al
+                  estudiante.
+                </p>
+              </div>
+
+              <StudentRecordAssignmentHistory
+                assignments={assignmentItems}
+              />
+            </section>
+          )}
 
           {academic && (
             <section

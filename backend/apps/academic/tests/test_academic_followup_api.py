@@ -695,3 +695,100 @@ class AcademicFollowUpAPITests(APITestCase):
                 pk=followup.pk,
             ).exists()
         )
+
+    def test_docente_cannot_access_other_docente_followup(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_owner",
+            role_name="DOCENTE",
+        )
+
+        other_docente = self.create_user_with_role(
+            username="docente_other_owner",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        self.assign_student(
+            professional=other_docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        own_followup = self.create_followup(
+            student=self.student_ana,
+            author=docente,
+        )
+
+        other_followup = self.create_followup(
+            student=self.student_ana,
+            author=other_docente,
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        list_response = self.client.get(
+            self.list_url,
+            {
+                "context": "DOCENTE",
+                "student": self.student_ana.id,
+            },
+        )
+
+        self.assertEqual(
+            list_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        returned_ids = {
+            item["id"]
+            for item in list_response.data
+        }
+
+        self.assertIn(
+            own_followup.id,
+            returned_ids,
+        )
+        self.assertNotIn(
+            other_followup.id,
+            returned_ids,
+        )
+
+        detail_url = reverse(
+            "academic-followup-detail",
+            kwargs={
+                "pk": other_followup.pk,
+            },
+        )
+
+        detail_response = self.client.get(
+            f"{detail_url}?context=DOCENTE"
+        )
+
+        self.assertEqual(
+            detail_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        patch_response = self.client.patch(
+            f"{detail_url}?context=DOCENTE",
+            {
+                "observations": (
+                    "Intento de modificación no autorizado."
+                ),
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            patch_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
