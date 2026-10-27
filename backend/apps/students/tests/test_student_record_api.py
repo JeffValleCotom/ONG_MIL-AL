@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -1203,4 +1203,155 @@ class StudentRecordAPITests(APITestCase):
         self.assertNotIn(
             other_therapy.id,
             therapy_ids,
+        )
+
+    def test_record_sections_require_role_bound_functional_permissions(
+        self,
+    ):
+        professional = User.objects.create_user(
+            username="multi_record_permissions",
+            password="MilalRecord123!",
+        )
+
+        docente_group = Group.objects.get(
+            name="DOCENTE",
+        )
+        psychology_group = Group.objects.get(
+            name="PSICOLOGO",
+        )
+        therapy_group = Group.objects.get(
+            name="TERAPEUTA",
+        )
+
+        professional.groups.add(
+            docente_group,
+            psychology_group,
+            therapy_group,
+        )
+
+        for role in (
+            "DOCENTE",
+            "PSICOLOGO",
+            "TERAPEUTA",
+        ):
+            self.assign_student(
+                professional=professional,
+                professional_role=role,
+                student=self.student_ana,
+            )
+
+        docente_group.permissions.remove(
+            Permission.objects.get(
+                codename="view_academic_followups",
+            )
+        )
+
+        psychology_group.permissions.remove(
+            Permission.objects.get(
+                codename="view_psychological_followups",
+            )
+        )
+
+        therapy_group.permissions.remove(
+            Permission.objects.get(
+                codename="view_therapy_followups",
+            )
+        )
+
+        self.client.force_authenticate(
+            user=professional,
+        )
+
+        context_sections = {
+            "DOCENTE": "academic",
+            "PSICOLOGO": "psychological",
+            "TERAPEUTA": "therapy",
+        }
+
+        for context, restricted_section in (
+            context_sections.items()
+        ):
+            response = self.client.get(
+                self.record_url(self.student_ana),
+                {
+                    "context": context,
+                },
+            )
+
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_200_OK,
+            )
+
+            self.assertIn(
+                "general",
+                response.data["sections"],
+            )
+
+            self.assertNotIn(
+                restricted_section,
+                response.data["sections"],
+            )
+
+    def test_assigned_professional_can_consult_inactive_student_history(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_inactive_record",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        followup = self.create_academic_followup(
+            student=self.student_ana,
+            author=docente,
+        )
+
+        self.student_ana.is_active = False
+        self.student_ana.save(
+            update_fields=[
+                "is_active",
+                "updated_at",
+            ]
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "DOCENTE",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertFalse(
+            response.data["sections"]
+            ["general"]
+            ["is_active"]
+        )
+
+        returned_ids = {
+            item["id"]
+            for item in (
+                response.data["sections"]
+                ["academic"]
+                ["followups"]
+            )
+        }
+
+        self.assertIn(
+            followup.id,
+            returned_ids,
         )
