@@ -373,11 +373,25 @@ class StudentRecordAssignmentsSectionSerializer(
     )
 
 
+class StudentRecordFamilySectionSerializer(
+    serializers.Serializer
+):
+    items = StudentFamilyMemberSerializer(
+        many=True,
+        read_only=True,
+    )
+
+
 class StudentRecordSectionsSerializer(
     serializers.Serializer
 ):
     general = StudentRecordGeneralSerializer(
         read_only=True,
+    )
+
+    family = StudentRecordFamilySectionSerializer(
+        read_only=True,
+        required=False,
     )
 
     assignments = StudentRecordAssignmentsSectionSerializer(
