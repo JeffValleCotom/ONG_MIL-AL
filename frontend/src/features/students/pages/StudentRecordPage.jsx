@@ -9,11 +9,14 @@ import {
   updateAcademicFollowUp,
 } from '../../academic/services/academicService'
 import {
+  createStudentFamilyMember,
   getStudentRecord,
   updateStudent,
 } from '../services/studentService'
 import StudentEditForm
   from '../components/StudentEditForm'
+import StudentFamilyMemberForm
+  from '../components/StudentFamilyMemberForm'
 import './StudentRecordPage.css'
 import PsychologicalFollowUpForm
   from '../../psychology/components/PsychologicalFollowUpForm'
@@ -210,6 +213,53 @@ function getTherapyErrorMessage(error) {
   )
 }
 
+function getFamilyErrorMessage(error) {
+  const data = error?.data
+
+  if (!data) {
+    return (
+      error?.message
+      || 'No fue posible registrar el familiar.'
+    )
+  }
+
+  const fieldOrder = [
+    'first_name',
+    'last_name',
+    'relationship',
+    'relationship_detail',
+    'phone',
+    'email',
+    'address',
+    'is_primary_contact',
+    'context',
+    'detail',
+  ]
+
+  for (const field of fieldOrder) {
+    const value = data[field]
+
+    if (
+      Array.isArray(value)
+      && value.length > 0
+    ) {
+      return value[0]
+    }
+
+    if (
+      typeof value === 'string'
+      && value
+    ) {
+      return value
+    }
+  }
+
+  return (
+    error?.message
+    || 'No fue posible registrar el familiar.'
+  )
+}
+
 function StudentRecordPage({
   studentId,
   studentContext,
@@ -237,6 +287,27 @@ function StudentRecordPage({
     generalSuccess,
     setGeneralSuccess,
   ] = useState('')
+
+  const [
+    isFamilyFormOpen,
+    setIsFamilyFormOpen,
+  ] = useState(false)
+
+  const [
+    isSavingFamily,
+    setIsSavingFamily,
+  ] = useState(false)
+
+  const [
+    familyError,
+    setFamilyError,
+  ] = useState('')
+
+  const [
+    familySuccess,
+    setFamilySuccess,
+  ] = useState('')
+
   const [
     isAcademicFormOpen,
     setIsAcademicFormOpen,
@@ -448,6 +519,52 @@ function StudentRecordPage({
     setAcademicError('')
     setAcademicSuccess('')
     setIsAcademicFormOpen(true)
+  }
+
+  function handleNewFamilyMember() {
+    setFamilyError('')
+    setFamilySuccess('')
+    setIsFamilyFormOpen(true)
+  }
+
+  function handleFamilyCancel() {
+    if (isSavingFamily) {
+      return
+    }
+
+    setFamilyError('')
+    setIsFamilyFormOpen(false)
+  }
+
+  async function handleFamilySubmit(
+    familyMemberData
+  ) {
+    if (isSavingFamily) {
+      return
+    }
+
+    setIsSavingFamily(true)
+    setFamilyError('')
+    setFamilySuccess('')
+
+    try {
+      await createStudentFamilyMember(
+        studentId,
+        familyMemberData,
+        studentContext
+      )
+
+      setIsFamilyFormOpen(false)
+      setFamilySuccess(
+        'Familiar registrado correctamente.'
+      )
+    } catch (saveError) {
+      setFamilyError(
+        getFamilyErrorMessage(saveError)
+      )
+    } finally {
+      setIsSavingFamily(false)
+    }
   }
 
   function handleAcademicEdit(followUp) {
@@ -688,6 +805,9 @@ function StudentRecordPage({
   const canUpdateGeneral = Boolean(
     capabilities.update_general
   )
+  const canManageFamily = Boolean(
+    capabilities.manage_family
+  )
   const general = record?.sections?.general
   const assignments =
     record?.sections?.assignments
@@ -734,6 +854,7 @@ function StudentRecordPage({
           onClick={onBack}
           disabled={
             isSavingGeneral
+            || isSavingFamily
             || isSavingAcademic
             || isSavingPsychological
             || isSavingTherapy
@@ -892,6 +1013,75 @@ function StudentRecordPage({
           )}
 
           </section>
+
+          {canManageFamily && (
+            <section
+              className="student-record-card"
+              aria-labelledby="family-section-title"
+            >
+              <div
+                className={
+                  'student-record-card__header '
+                  + 'student-record-card__header--actions'
+                }
+              >
+                <div>
+                  <h2 id="family-section-title">
+                    Información familiar
+                  </h2>
+
+                  <p>
+                    Registro de familiares y contactos del
+                    estudiante.
+                  </p>
+                </div>
+
+                {!isFamilyFormOpen && (
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    onClick={handleNewFamilyMember}
+                  >
+                    Registrar familiar
+                  </button>
+                )}
+              </div>
+
+              {familySuccess && (
+                <div
+                  className="form-message form-message--success"
+                  role="status"
+                >
+                  {familySuccess}
+                </div>
+              )}
+
+              {familyError && !isFamilyFormOpen && (
+                <div
+                  className="form-message form-message--error"
+                  role="alert"
+                >
+                  {familyError}
+                </div>
+              )}
+
+              {isFamilyFormOpen && (
+                <div className="student-record-card__content">
+                  <h3 className="student-record-form-title">
+                    Nuevo familiar
+                  </h3>
+
+                  <StudentFamilyMemberForm
+                    key={`new-family-${studentId}`}
+                    onSubmit={handleFamilySubmit}
+                    onCancel={handleFamilyCancel}
+                    isSubmitting={isSavingFamily}
+                    error={familyError}
+                  />
+                </div>
+              )}
+            </section>
+          )}
 
           {assignments && (
             <section

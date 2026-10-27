@@ -68,6 +68,30 @@ export function updateStudent(studentId, studentData) {
 }
 
 
+export function createStudentFamilyMember(
+  studentId,
+  familyMemberData,
+  context = ''
+) {
+  const params = new URLSearchParams()
+
+  if (context) {
+    params.set('context', context)
+  }
+
+  const queryString = params.toString()
+
+  return apiRequest(
+    `/students/${studentId}/family-members/`
+    + `${queryString ? `?${queryString}` : ''}`,
+    {
+      method: 'POST',
+      data: familyMemberData,
+    }
+  )
+}
+
+
 export function activateStudent(studentId) {
   return apiRequest(`/students/${studentId}/activate/`, {
     method: 'PATCH',
