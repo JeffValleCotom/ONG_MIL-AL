@@ -124,6 +124,7 @@ class AcademicFollowUpViewSet(
                 "updated_by",
             )
             .filter(
+                created_by=self.request.user,
                 student__professional_assignments__professional=(
                     self.request.user
                 ),

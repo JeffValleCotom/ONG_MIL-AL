@@ -437,3 +437,83 @@ class PsychologicalFollowUpAPITests(APITestCase):
             response.status_code,
             status.HTTP_405_METHOD_NOT_ALLOWED,
         )
+
+    def test_psychologist_cannot_access_other_psychologist_followup(
+        self,
+    ):
+        StudentProfessionalAssignment.objects.create(
+            student=self.assigned_student,
+            professional=self.other_psychologist,
+            professional_role="PSICOLOGO",
+            assigned_by=self.responsible,
+            is_active=True,
+        )
+
+        other_followup = (
+            PsychologicalFollowUp.objects.create(
+                student=self.assigned_student,
+                followup_date=date(2026, 2, 5),
+                reason="Seguimiento de otro profesional",
+                observations=(
+                    "Información psicológica confidencial."
+                ),
+                created_by=self.other_psychologist,
+                updated_by=self.other_psychologist,
+            )
+        )
+
+        self.authenticate(self.psychologist)
+
+        list_response = self.client.get(
+            self.psychological_context_url()
+        )
+
+        self.assertEqual(
+            list_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        returned_ids = {
+            item["id"]
+            for item in list_response.data
+        }
+
+        self.assertIn(
+            self.assigned_followup.id,
+            returned_ids,
+        )
+        self.assertNotIn(
+            other_followup.id,
+            returned_ids,
+        )
+
+        detail_url = reverse(
+            "psychological-followup-detail",
+            kwargs={
+                "pk": other_followup.pk,
+            },
+        )
+
+        detail_response = self.client.get(
+            f"{detail_url}?context=PSICOLOGO"
+        )
+
+        self.assertEqual(
+            detail_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        patch_response = self.client.patch(
+            f"{detail_url}?context=PSICOLOGO",
+            {
+                "observations": (
+                    "Intento de modificación no autorizado."
+                ),
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            patch_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )

@@ -28,6 +28,7 @@ from apps.psychology.access import (
 from apps.therapy.access import (
     has_therapist_permission,
 )
+from .access import has_responsible_permission
 
 User = get_user_model()
 
@@ -239,6 +240,24 @@ class StudentViewSet(
         }
 
         if (
+            context == "RESPONSABLE_INSTITUCIONAL"
+            and has_responsible_permission(
+                request.user,
+                "manage_student_assignments",
+            )
+        ):
+            sections["assignments"] = {
+                "items": (
+                    student.professional_assignments
+                    .select_related(
+                        "professional",
+                        "assigned_by",
+                    )
+                    .all()
+                ),
+            }
+
+        if (
             context == "DOCENTE"
             and has_docente_permission(
                 request.user,
@@ -248,6 +267,9 @@ class StudentViewSet(
             sections["academic"] = {
                 "followups": (
                     student.academic_followups
+                    .filter(
+                        created_by=request.user,
+                    )
                     .select_related(
                         "created_by",
                         "updated_by",
@@ -265,6 +287,9 @@ class StudentViewSet(
             sections["psychological"] = {
                 "followups": (
                     student.psychological_followups
+                    .filter(
+                        created_by=request.user,
+                    )
                     .select_related(
                         "created_by",
                         "updated_by",
@@ -283,6 +308,9 @@ class StudentViewSet(
             sections["therapy"] = {
                 "followups": (
                     student.therapy_followups
+                    .filter(
+                        created_by=request.user,
+                    )
                     .select_related(
                         "created_by",
                         "updated_by",

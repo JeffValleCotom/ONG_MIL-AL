@@ -10,7 +10,7 @@ from apps.students.models import (
     Student,
     StudentProfessionalAssignment,
 )
-
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -183,7 +183,9 @@ class StudentRecordAPITests(APITestCase):
             status.HTTP_404_NOT_FOUND,
         )
 
-    def test_record_only_contains_base_general_section(self):
+    def test_responsible_record_contains_authorized_sections_only(
+        self,
+    ):
         responsable = self.create_user_with_role(
             username="responsable_record_sections",
             role_name="RESPONSABLE_INSTITUCIONAL",
@@ -209,17 +211,25 @@ class StudentRecordAPITests(APITestCase):
             set(response.data["sections"].keys()),
             {
                 "general",
+                "assignments",
             },
+        )
+
+        self.assertEqual(
+            response.data["sections"]["assignments"]["items"],
+            [],
         )
 
         self.assertNotIn(
             "academic",
             response.data["sections"],
         )
+
         self.assertNotIn(
             "psychological",
             response.data["sections"],
         )
+
         self.assertNotIn(
             "therapy",
             response.data["sections"],
@@ -810,4 +820,387 @@ class StudentRecordAPITests(APITestCase):
         self.assertNotIn(
             "psychological",
             therapy_response.data["sections"],
+        )
+
+    def test_responsible_record_includes_assignment_history(
+        self,
+    ):
+        responsible = self.create_user_with_role(
+            username="responsable_integral_record",
+            role_name="RESPONSABLE_INSTITUCIONAL",
+        )
+
+        docente = self.create_user_with_role(
+            username="docente_integral_record",
+            role_name="DOCENTE",
+        )
+
+        active_assignment = self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        finished_assignment = (
+            StudentProfessionalAssignment.objects.create(
+                student=self.student_ana,
+                professional=docente,
+                professional_role="DOCENTE",
+                assigned_by=self.assignment_manager,
+                is_active=False,
+                unassigned_at=timezone.now(),
+            )
+        )
+
+        self.client.force_authenticate(
+            user=responsible,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "RESPONSABLE_INSTITUCIONAL",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "assignments",
+            response.data["sections"],
+        )
+
+        items = (
+            response.data["sections"]
+            ["assignments"]
+            ["items"]
+        )
+
+        returned_ids = {
+            item["id"]
+            for item in items
+        }
+
+        self.assertEqual(
+            returned_ids,
+            {
+                active_assignment.id,
+                finished_assignment.id,
+            },
+        )
+
+        self.assertNotIn(
+            "academic",
+            response.data["sections"],
+        )
+        self.assertNotIn(
+            "psychological",
+            response.data["sections"],
+        )
+        self.assertNotIn(
+            "therapy",
+            response.data["sections"],
+        )
+
+    def test_professional_record_excludes_assignments_section(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_record_no_assignments",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "DOCENTE",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertNotIn(
+            "assignments",
+            response.data["sections"],
+        )
+
+    def test_multi_role_assignment_section_respects_context(
+        self,
+    ):
+        professional = User.objects.create_user(
+            username="multi_responsible_docente_record",
+            password="MilalRecord123!",
+        )
+
+        professional.groups.add(
+            Group.objects.get(name="DOCENTE"),
+            Group.objects.get(
+                name="RESPONSABLE_INSTITUCIONAL"
+            ),
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        self.create_academic_followup(
+            student=self.student_ana,
+            author=professional,
+        )
+
+        self.client.force_authenticate(
+            user=professional,
+        )
+
+        docente_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "DOCENTE",
+            },
+        )
+
+        self.assertEqual(
+            docente_response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertIn(
+            "academic",
+            docente_response.data["sections"],
+        )
+        self.assertNotIn(
+            "assignments",
+            docente_response.data["sections"],
+        )
+
+        responsible_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "RESPONSABLE_INSTITUCIONAL",
+            },
+        )
+
+        self.assertEqual(
+            responsible_response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertIn(
+            "assignments",
+            responsible_response.data["sections"],
+        )
+        self.assertNotIn(
+            "academic",
+            responsible_response.data["sections"],
+        )
+
+    def test_record_only_includes_followups_created_by_current_user(
+        self,
+    ):
+        professional = User.objects.create_user(
+            username="multi_record_owner",
+            password="MilalRecord123!",
+        )
+
+        professional.groups.add(
+            Group.objects.get(name="DOCENTE"),
+            Group.objects.get(name="PSICOLOGO"),
+            Group.objects.get(name="TERAPEUTA"),
+        )
+
+        other_docente = self.create_user_with_role(
+            username="other_docente_record_owner",
+            role_name="DOCENTE",
+        )
+
+        other_psychologist = self.create_user_with_role(
+            username="other_psych_record_owner",
+            role_name="PSICOLOGO",
+        )
+
+        other_therapist = self.create_user_with_role(
+            username="other_therapy_record_owner",
+            role_name="TERAPEUTA",
+        )
+
+        for role in (
+            "DOCENTE",
+            "PSICOLOGO",
+            "TERAPEUTA",
+        ):
+            self.assign_student(
+                professional=professional,
+                professional_role=role,
+                student=self.student_ana,
+            )
+
+        self.assign_student(
+            professional=other_docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        self.assign_student(
+            professional=other_psychologist,
+            professional_role="PSICOLOGO",
+            student=self.student_ana,
+        )
+
+        self.assign_student(
+            professional=other_therapist,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        own_academic = self.create_academic_followup(
+            student=self.student_ana,
+            author=professional,
+        )
+
+        other_academic = self.create_academic_followup(
+            student=self.student_ana,
+            author=other_docente,
+        )
+
+        own_psychological = (
+            self.create_psychological_followup(
+                student=self.student_ana,
+                author=professional,
+            )
+        )
+
+        other_psychological = (
+            self.create_psychological_followup(
+                student=self.student_ana,
+                author=other_psychologist,
+            )
+        )
+
+        own_therapy = self.create_therapy_followup(
+            student=self.student_ana,
+            author=professional,
+        )
+
+        other_therapy = self.create_therapy_followup(
+            student=self.student_ana,
+            author=other_therapist,
+        )
+
+        self.client.force_authenticate(
+            user=professional,
+        )
+
+        academic_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "DOCENTE",
+            },
+        )
+
+        self.assertEqual(
+            academic_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        academic_ids = {
+            item["id"]
+            for item in (
+                academic_response.data["sections"]
+                ["academic"]
+                ["followups"]
+            )
+        }
+
+        self.assertEqual(
+            academic_ids,
+            {
+                own_academic.id,
+            },
+        )
+
+        self.assertNotIn(
+            other_academic.id,
+            academic_ids,
+        )
+
+        psychological_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "PSICOLOGO",
+            },
+        )
+
+        self.assertEqual(
+            psychological_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        psychological_ids = {
+            item["id"]
+            for item in (
+                psychological_response.data["sections"]
+                ["psychological"]
+                ["followups"]
+            )
+        }
+
+        self.assertEqual(
+            psychological_ids,
+            {
+                own_psychological.id,
+            },
+        )
+
+        self.assertNotIn(
+            other_psychological.id,
+            psychological_ids,
+        )
+
+        therapy_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        self.assertEqual(
+            therapy_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        therapy_ids = {
+            item["id"]
+            for item in (
+                therapy_response.data["sections"]
+                ["therapy"]
+                ["followups"]
+            )
+        }
+
+        self.assertEqual(
+            therapy_ids,
+            {
+                own_therapy.id,
+            },
+        )
+
+        self.assertNotIn(
+            other_therapy.id,
+            therapy_ids,
         )

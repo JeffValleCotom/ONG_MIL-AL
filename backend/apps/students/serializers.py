@@ -163,11 +163,62 @@ class StudentRecordGeneralSerializer(
         ]
 
 
+class StudentRecordAssignmentUserSerializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+        ]
+
+
+class StudentRecordAssignmentSerializer(
+    serializers.ModelSerializer
+):
+    professional = StudentRecordAssignmentUserSerializer(
+        read_only=True,
+    )
+
+    assigned_by = StudentRecordAssignmentUserSerializer(
+        read_only=True,
+    )
+
+    class Meta:
+        model = StudentProfessionalAssignment
+        fields = [
+            "id",
+            "professional",
+            "professional_role",
+            "is_active",
+            "assigned_at",
+            "unassigned_at",
+            "assigned_by",
+        ]
+
+
+class StudentRecordAssignmentsSectionSerializer(
+    serializers.Serializer
+):
+    items = StudentRecordAssignmentSerializer(
+        many=True,
+        read_only=True,
+    )
+
+
 class StudentRecordSectionsSerializer(
     serializers.Serializer
 ):
     general = StudentRecordGeneralSerializer(
         read_only=True,
+    )
+
+    assignments = StudentRecordAssignmentsSectionSerializer(
+        read_only=True,
+        required=False,
     )
 
     academic = AcademicRecordSectionSerializer(
