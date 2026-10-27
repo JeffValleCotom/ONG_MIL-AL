@@ -9,17 +9,17 @@ from rest_framework import (
 )
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
 from apps.users.permissions import HasPlatformPermission
-
 from .models import Student, StudentProfessionalAssignment
 from .serializers import (
     AssignmentUserSummarySerializer,
     StudentProfessionalAssignmentSerializer,
     StudentRecordSerializer,
     StudentSerializer,
+    StudentFamilyMemberSerializer,
 )
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from apps.academic.access import has_docente_permission
 from apps.psychology.access import (
@@ -78,6 +78,7 @@ class StudentViewSet(
         "partial_update": "manage_students",
         "activate": "manage_students",
         "deactivate": "manage_students",
+        "family_members": "manage_students",
     }
 
     def get_required_permission(self):
@@ -127,6 +128,7 @@ class StudentViewSet(
                 "partial_update",
                 "activate",
                 "deactivate",
+                "family_members",
             }
             and "RESPONSABLE_INSTITUCIONAL" in user_roles
         ):
@@ -227,6 +229,67 @@ class StudentViewSet(
 
     @action(
         detail=True,
+        methods=["post"],
+        url_path="family-members",
+    )
+    def family_members(self, request, pk=None):
+        student = self.get_object()
+
+        context = self.get_student_access_context()
+
+        if (
+            context != "RESPONSABLE_INSTITUCIONAL"
+            or not has_responsible_permission(
+                request.user,
+                "manage_students",
+            )
+        ):
+            raise exceptions.PermissionDenied(
+                "No tiene permiso para gestionar "
+                "la información familiar."
+            )
+
+        serializer = StudentFamilyMemberSerializer(
+            data=request.data,
+            context={
+                **self.get_serializer_context(),
+                "student": student,
+            },
+        )
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        try:
+            with transaction.atomic():
+                serializer.save(
+                    student=student,
+                    created_by=request.user,
+                    updated_by=request.user,
+                )
+        except IntegrityError as exc:
+            if serializer.validated_data.get(
+                "is_primary_contact",
+                False,
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "is_primary_contact": (
+                            "El estudiante ya posee un "
+                            "contacto principal activo."
+                        )
+                    }
+                ) from exc
+
+            raise
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(
+        detail=True,
         methods=["get"],
         url_path="record",
     )
@@ -235,14 +298,17 @@ class StudentViewSet(
 
         context = self.get_student_access_context()
 
+        can_manage_students = (
+            context == "RESPONSABLE_INSTITUCIONAL"
+            and has_responsible_permission(
+                request.user,
+                "manage_students",
+            )
+        )
+
         capabilities = {
-            "update_general": (
-                context == "RESPONSABLE_INSTITUCIONAL"
-                and has_responsible_permission(
-                    request.user,
-                    "manage_students",
-                )
-            ),
+            "update_general": can_manage_students,
+            "manage_family": can_manage_students,
         }
 
         sections = {

@@ -1382,6 +1382,9 @@ class StudentRecordAPITests(APITestCase):
         self.assertTrue(
             response.data["capabilities"]["update_general"]
         )
+        self.assertTrue(
+            response.data["capabilities"]["manage_family"]
+        )
 
 
     def test_responsible_without_manage_students_cannot_update_general(
@@ -1421,6 +1424,9 @@ class StudentRecordAPITests(APITestCase):
         self.assertFalse(
             response.data["capabilities"]["update_general"]
         )
+        self.assertFalse(
+            response.data["capabilities"]["manage_family"]
+        )
 
 
     def test_professional_record_cannot_update_general_information(
@@ -1454,4 +1460,7 @@ class StudentRecordAPITests(APITestCase):
         )
         self.assertFalse(
             response.data["capabilities"]["update_general"]
+        )
+        self.assertFalse(
+            response.data["capabilities"]["manage_family"]
         )

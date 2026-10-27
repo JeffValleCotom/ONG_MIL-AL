@@ -2,7 +2,11 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Student, StudentProfessionalAssignment
+from .models import (
+    Student,
+    StudentFamilyMember,
+    StudentProfessionalAssignment,
+)
 
 from apps.academic.serializers import (
     AcademicRecordSectionSerializer,
@@ -148,6 +152,166 @@ class StudentSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class StudentFamilyMemberSerializer(
+    serializers.ModelSerializer
+):
+    student_id = serializers.IntegerField(
+        read_only=True,
+    )
+
+    first_name = serializers.CharField(
+        max_length=100,
+        allow_blank=False,
+        trim_whitespace=True,
+    )
+    last_name = serializers.CharField(
+        max_length=100,
+        allow_blank=False,
+        trim_whitespace=True,
+    )
+    relationship_detail = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        trim_whitespace=True,
+    )
+    phone = serializers.CharField(
+        max_length=30,
+        required=False,
+        allow_blank=True,
+        trim_whitespace=True,
+    )
+    email = serializers.EmailField(
+        required=False,
+        allow_blank=True,
+    )
+    address = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        trim_whitespace=True,
+    )
+
+    class Meta:
+        model = StudentFamilyMember
+        fields = [
+            "id",
+            "student_id",
+            "first_name",
+            "last_name",
+            "relationship",
+            "relationship_detail",
+            "phone",
+            "email",
+            "address",
+            "is_primary_contact",
+            "is_active",
+            "deactivated_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "student_id",
+            "is_active",
+            "deactivated_at",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        relationship = attrs.get(
+            "relationship",
+            getattr(
+                self.instance,
+                "relationship",
+                None,
+            ),
+        )
+        relationship_detail = attrs.get(
+            "relationship_detail",
+            getattr(
+                self.instance,
+                "relationship_detail",
+                "",
+            ),
+        )
+
+        relationship_detail = (
+            relationship_detail.strip()
+            if relationship_detail
+            else ""
+        )
+        attrs["relationship_detail"] = (
+            relationship_detail
+        )
+
+        errors = {}
+
+        if (
+            relationship
+            == StudentFamilyMember.Relationship.OTRO
+            and not relationship_detail
+        ):
+            errors["relationship_detail"] = (
+                "Debe especificar el parentesco cuando "
+                "selecciona Otro."
+            )
+
+        if (
+            relationship
+            != StudentFamilyMember.Relationship.OTRO
+            and relationship_detail
+        ):
+            errors["relationship_detail"] = (
+                "El detalle de parentesco solo corresponde "
+                "cuando el parentesco es Otro."
+            )
+
+        student = self.context.get("student")
+
+        is_primary_contact = attrs.get(
+            "is_primary_contact",
+            getattr(
+                self.instance,
+                "is_primary_contact",
+                False,
+            ),
+        )
+
+        if (
+            student is not None
+            and is_primary_contact
+        ):
+            primary_contacts = (
+                StudentFamilyMember.objects.filter(
+                    student=student,
+                    is_active=True,
+                    is_primary_contact=True,
+                )
+            )
+
+            if self.instance is not None:
+                primary_contacts = (
+                    primary_contacts.exclude(
+                        pk=self.instance.pk
+                    )
+                )
+
+            if primary_contacts.exists():
+                errors["is_primary_contact"] = (
+                    "El estudiante ya posee un contacto "
+                    "principal activo."
+                )
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return attrs
+
+
 class StudentRecordGeneralSerializer(
     serializers.ModelSerializer
 ):
@@ -240,6 +404,9 @@ class StudentRecordCapabilitiesSerializer(
     serializers.Serializer
 ):
     update_general = serializers.BooleanField(
+        read_only=True,
+    )
+    manage_family = serializers.BooleanField(
         read_only=True,
     )
 
