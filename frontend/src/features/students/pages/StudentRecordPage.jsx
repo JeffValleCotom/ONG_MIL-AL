@@ -8,8 +8,12 @@ import {
   createAcademicFollowUp,
   updateAcademicFollowUp,
 } from '../../academic/services/academicService'
-import { getStudentRecord }
-  from '../services/studentService'
+import {
+  getStudentRecord,
+  updateStudent,
+} from '../services/studentService'
+import StudentEditForm
+  from '../components/StudentEditForm'
 import './StudentRecordPage.css'
 import PsychologicalFollowUpForm
   from '../../psychology/components/PsychologicalFollowUpForm'
@@ -214,7 +218,25 @@ function StudentRecordPage({
   const [record, setRecord] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [
+    isGeneralFormOpen,
+    setIsGeneralFormOpen,
+  ] = useState(false)
 
+  const [
+    isSavingGeneral,
+    setIsSavingGeneral,
+  ] = useState(false)
+
+  const [
+    generalError,
+    setGeneralError,
+  ] = useState('')
+
+  const [
+    generalSuccess,
+    setGeneralSuccess,
+  ] = useState('')
   const [
     isAcademicFormOpen,
     setIsAcademicFormOpen,
@@ -333,6 +355,92 @@ function StudentRecordPage({
     )
 
     setRecord(data)
+  }
+
+  function handleGeneralEdit() {
+    setGeneralError('')
+    setGeneralSuccess('')
+    setIsGeneralFormOpen(true)
+  }
+
+
+  function handleGeneralCancel() {
+    if (isSavingGeneral) {
+      return
+    }
+
+    setGeneralError('')
+    setIsGeneralFormOpen(false)
+  }
+
+
+  async function handleGeneralSubmit(studentData) {
+    if (isSavingGeneral) {
+      return
+    }
+
+    setIsSavingGeneral(true)
+    setGeneralError('')
+    setGeneralSuccess('')
+
+    try {
+      await updateStudent(
+        studentId,
+        studentData
+      )
+
+      setIsGeneralFormOpen(false)
+      setGeneralSuccess(
+        'Información general actualizada correctamente.'
+      )
+
+      try {
+        await refreshRecord()
+      } catch {
+        setGeneralError(
+          'La información fue actualizada, pero no fue '
+          + 'posible refrescar el expediente.'
+        )
+      }
+    } catch (saveError) {
+      const data = saveError?.data
+
+      const fieldOrder = [
+        'institutional_code',
+        'first_name',
+        'last_name',
+        'date_of_birth',
+        'admission_date',
+        'detail',
+      ]
+
+      let message = ''
+
+      for (const field of fieldOrder) {
+        const fieldError = data?.[field]
+
+        if (
+          Array.isArray(fieldError)
+          && fieldError.length > 0
+        ) {
+          message = fieldError[0]
+          break
+        }
+
+        if (typeof fieldError === 'string') {
+          message = fieldError
+          break
+        }
+      }
+
+      setGeneralError(
+        message
+        || saveError?.message
+        || 'No fue posible actualizar la información general.'
+      )
+    } finally {
+      setIsSavingGeneral(false)
+    }
   }
 
   function handleNewAcademicFollowUp() {
@@ -575,6 +683,11 @@ function StudentRecordPage({
     }
   }
 
+  const capabilities = record?.capabilities ?? {}
+
+  const canUpdateGeneral = Boolean(
+    capabilities.update_general
+  )
   const general = record?.sections?.general
   const assignments =
     record?.sections?.assignments
@@ -620,7 +733,8 @@ function StudentRecordPage({
           type="button"
           onClick={onBack}
           disabled={
-            isSavingAcademic
+            isSavingGeneral
+            || isSavingAcademic
             || isSavingPsychological
             || isSavingTherapy
           }
@@ -657,7 +771,13 @@ function StudentRecordPage({
             className="student-record-card"
             aria-labelledby="general-section-title"
           >
-            <div className="student-record-card__header">
+          <div
+            className={
+              'student-record-card__header '
+              + 'student-record-card__header--actions'
+            }
+          >
+            <div>
               <h2 id="general-section-title">
                 Información general
               </h2>
@@ -667,6 +787,55 @@ function StudentRecordPage({
               </p>
             </div>
 
+            {canUpdateGeneral
+              && !isGeneralFormOpen && (
+              <button
+                className="button button--primary"
+                type="button"
+                onClick={handleGeneralEdit}
+              >
+                Editar información
+              </button>
+            )}
+          </div>
+
+          {generalSuccess && (
+            <div
+              className="form-message form-message--success"
+              role="status"
+            >
+              {generalSuccess}
+            </div>
+          )}
+
+          {generalError
+            && !isGeneralFormOpen && (
+            <div
+              className="form-message form-message--error"
+              role="alert"
+            >
+              {generalError}
+            </div>
+          )}
+
+          {isGeneralFormOpen && (
+            <div className="student-record-card__content">
+              <h3 className="student-record-form-title">
+                Editar información general
+              </h3>
+
+              <StudentEditForm
+                key={`edit-general-${studentId}`}
+                student={general}
+                onSubmit={handleGeneralSubmit}
+                onCancel={handleGeneralCancel}
+                isSubmitting={isSavingGeneral}
+                error={generalError}
+              />
+            </div>
+          )}
+
+          {!isGeneralFormOpen && (
             <dl className="student-record-grid">
               <div>
                 <dt>Código institucional</dt>
@@ -720,6 +889,8 @@ function StudentRecordPage({
                 </dd>
               </div>
             </dl>
+          )}
+
           </section>
 
           {assignments && (
