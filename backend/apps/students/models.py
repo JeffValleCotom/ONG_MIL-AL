@@ -112,3 +112,133 @@ class StudentProfessionalAssignment(models.Model):
             f"{self.professional.username} - "
             f"{self.professional_role}"
         )
+
+class StudentFamilyMember(models.Model):
+    class Relationship(models.TextChoices):
+        MADRE = "MADRE", "Madre"
+        PADRE = "PADRE", "Padre"
+        HERMANO_A = "HERMANO_A", "Hermano/a"
+        ABUELO_A = "ABUELO_A", "Abuelo/a"
+        TIO_A = "TIO_A", "Tío/a"
+        TUTOR = "TUTOR", "Tutor"
+        CUIDADOR = "CUIDADOR", "Cuidador"
+        OTRO = "OTRO", "Otro"
+
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.PROTECT,
+        related_name="family_members",
+    )
+    first_name = models.CharField(
+        max_length=100,
+    )
+    last_name = models.CharField(
+        max_length=100,
+    )
+    relationship = models.CharField(
+        max_length=20,
+        choices=Relationship.choices,
+    )
+    relationship_detail = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+    )
+    phone = models.CharField(
+        max_length=30,
+        blank=True,
+        default="",
+    )
+    email = models.EmailField(
+        blank=True,
+        default="",
+    )
+    address = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+    )
+    is_primary_contact = models.BooleanField(
+        default=False,
+    )
+    is_active = models.BooleanField(
+        default=True,
+    )
+    deactivated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="family_members_created",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="family_members_updated",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = [
+            "-is_active",
+            "-is_primary_contact",
+            "last_name",
+            "first_name",
+            "id",
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "student",
+                ],
+                condition=Q(
+                    is_active=True,
+                    is_primary_contact=True,
+                ),
+                name="uniq_active_primary_family_contact",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        is_active=True,
+                        deactivated_at__isnull=True,
+                    )
+                    | Q(
+                        is_active=False,
+                        deactivated_at__isnull=False,
+                    )
+                ),
+                name="student_family_status_dates_ck",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        relationship="OTRO",
+                    )
+                    & ~Q(
+                        relationship_detail="",
+                    )
+                    | ~Q(
+                        relationship="OTRO",
+                    )
+                    & Q(
+                        relationship_detail="",
+                    )
+                ),
+                name="student_family_relationship_detail_ck",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.student.institutional_code} - "
+            f"{self.first_name} {self.last_name} - "
+            f"{self.relationship}"
+        )
