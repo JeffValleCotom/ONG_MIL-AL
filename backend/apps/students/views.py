@@ -235,6 +235,16 @@ class StudentViewSet(
 
         context = self.get_student_access_context()
 
+        capabilities = {
+            "update_general": (
+                context == "RESPONSABLE_INSTITUCIONAL"
+                and has_responsible_permission(
+                    request.user,
+                    "manage_students",
+                )
+            ),
+        }
+
         sections = {
             "general": student,
         }
@@ -323,6 +333,7 @@ class StudentViewSet(
             {
                 "student_id": student.id,
                 "context": context,
+                "capabilities": capabilities,
                 "sections": sections,
             }
         )

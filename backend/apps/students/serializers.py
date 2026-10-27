@@ -236,6 +236,13 @@ class StudentRecordSectionsSerializer(
         required=False,
     )
 
+class StudentRecordCapabilitiesSerializer(
+    serializers.Serializer
+):
+    update_general = serializers.BooleanField(
+        read_only=True,
+    )
+
 
 class StudentRecordSerializer(
     serializers.Serializer
@@ -244,6 +251,9 @@ class StudentRecordSerializer(
         read_only=True,
     )
     context = serializers.CharField(
+        read_only=True,
+    )
+    capabilities = StudentRecordCapabilitiesSerializer(
         read_only=True,
     )
     sections = StudentRecordSectionsSerializer(

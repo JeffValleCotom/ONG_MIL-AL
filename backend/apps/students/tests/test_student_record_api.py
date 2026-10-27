@@ -1355,3 +1355,103 @@ class StudentRecordAPITests(APITestCase):
             followup.id,
             returned_ids,
         )
+
+    def test_responsible_record_can_update_general_information(
+        self,
+    ):
+        responsible = self.create_user_with_role(
+            username="responsible_record_update",
+            role_name="RESPONSABLE_INSTITUCIONAL",
+        )
+
+        self.client.force_authenticate(
+            user=responsible
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "RESPONSABLE_INSTITUCIONAL",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertTrue(
+            response.data["capabilities"]["update_general"]
+        )
+
+
+    def test_responsible_without_manage_students_cannot_update_general(
+        self,
+    ):
+        responsible = self.create_user_with_role(
+            username="responsible_record_no_update",
+            role_name="RESPONSABLE_INSTITUCIONAL",
+        )
+
+        responsible_group = Group.objects.get(
+            name="RESPONSABLE_INSTITUCIONAL"
+        )
+        responsible_group.permissions.remove(
+            Permission.objects.get(
+                content_type__app_label="users",
+                content_type__model="user",
+                codename="manage_students",
+            )
+        )
+
+        self.client.force_authenticate(
+            user=responsible
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "RESPONSABLE_INSTITUCIONAL",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertFalse(
+            response.data["capabilities"]["update_general"]
+        )
+
+
+    def test_professional_record_cannot_update_general_information(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_record_no_general_update",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        self.client.force_authenticate(
+            user=docente
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "DOCENTE",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertFalse(
+            response.data["capabilities"]["update_general"]
+        )
