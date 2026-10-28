@@ -153,6 +153,63 @@ class StudentRecordAPITests(APITestCase):
             "DOCENTE",
         )
 
+        self.assertTrue(
+            response.data["capabilities"][
+                "manage_academic"
+            ]
+        )
+
+    def test_docente_without_manage_academic_permission_has_no_manage_capability(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_record_no_academic_manage",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        docente_group = Group.objects.get(
+            name="DOCENTE",
+        )
+
+        docente_group.permissions.remove(
+            Permission.objects.get(
+                codename="manage_academic_followups",
+            )
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "DOCENTE",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "academic",
+            response.data["sections"],
+        )
+
+        self.assertFalse(
+            response.data["capabilities"][
+                "manage_academic"
+            ]
+        )
+
     def test_professional_cannot_retrieve_unassigned_record(
         self,
     ):
