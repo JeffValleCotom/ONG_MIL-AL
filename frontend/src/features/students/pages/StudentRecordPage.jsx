@@ -10,6 +10,8 @@ import {
 } from '../../academic/services/academicService'
 import {
   createStudentFamilyMember,
+  updateStudentFamilyMember,
+  deactivateStudentFamilyMember,
   getStudentRecord,
   updateStudent,
 } from '../services/studentService'
@@ -296,6 +298,16 @@ function StudentRecordPage({
   ] = useState(false)
 
   const [
+    editingFamilyMember,
+    setEditingFamilyMember,
+  ] = useState(null)
+
+  const [
+    deactivatingFamilyMemberId,
+    setDeactivatingFamilyMemberId,
+  ] = useState(null)
+
+  const [
     isSavingFamily,
     setIsSavingFamily,
   ] = useState(false)
@@ -541,34 +553,114 @@ function StudentRecordPage({
   async function handleFamilySubmit(
     familyMemberData
   ) {
-    if (isSavingFamily) {
-      return
-    }
+    const isEditing = Boolean(
+      editingFamilyMember
+    )
 
     setIsSavingFamily(true)
     setFamilyError('')
     setFamilySuccess('')
 
     try {
-      await createStudentFamilyMember(
+      if (isEditing) {
+        await updateStudentFamilyMember(
+          studentId,
+          editingFamilyMember.id,
+          familyMemberData,
+          studentContext
+        )
+      } else {
+        await createStudentFamilyMember(
+          studentId,
+          familyMemberData,
+          studentContext
+        )
+      }
+
+      await refreshRecord()
+
+      setEditingFamilyMember(null)
+      setIsFamilyFormOpen(false)
+
+      setFamilySuccess(
+        isEditing
+          ? 'Información familiar actualizada correctamente.'
+          : 'Familiar registrado correctamente.'
+      )
+    } catch (error) {
+      // Conserva aquí el mismo manejo de error
+      // que ya utilizabas en este método.
+      setFamilyError(
+        error.message
+        || 'No fue posible guardar la información familiar.'
+      )
+    } finally {
+      setIsSavingFamily(false)
+    }
+  }
+
+  async function handleFamilyDeactivate(member) {
+    const confirmed = window.confirm(
+      `¿Deseas desactivar a ${member.first_name} `
+      + `${member.last_name}? El registro se conservará `
+      + 'como información histórica.'
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setDeactivatingFamilyMemberId(member.id)
+    setFamilyError('')
+    setFamilySuccess('')
+
+    try {
+      await deactivateStudentFamilyMember(
         studentId,
-        familyMemberData,
+        member.id,
         studentContext
       )
 
       await refreshRecord()
 
-      setIsFamilyFormOpen(false)
+      if (
+        editingFamilyMember?.id === member.id
+      ) {
+        setEditingFamilyMember(null)
+        setIsFamilyFormOpen(false)
+      }
+
       setFamilySuccess(
-        'Familiar registrado correctamente.'
+        'Familiar desactivado correctamente.'
       )
-    } catch (saveError) {
+    } catch (error) {
       setFamilyError(
-        getFamilyErrorMessage(saveError)
+        error.message
+        || 'No fue posible desactivar al familiar.'
       )
     } finally {
-      setIsSavingFamily(false)
+      setDeactivatingFamilyMemberId(null)
     }
+  }
+
+  function handleOpenFamilyRegistration() {
+    setEditingFamilyMember(null)
+    setFamilyError('')
+    setFamilySuccess('')
+    setIsFamilyFormOpen(true)
+  }
+
+  function handleFamilyEdit(member) {
+    setEditingFamilyMember(member)
+    setFamilyError('')
+    setFamilySuccess('')
+    setIsFamilyFormOpen(true)
+  }
+
+  function handleFamilyCancel() {
+    setEditingFamilyMember(null)
+    setFamilyError('')
+    setIsFamilyFormOpen(false)
   }
 
   function handleAcademicEdit(followUp) {
@@ -1046,7 +1138,7 @@ function StudentRecordPage({
                   <button
                     className="button button--primary"
                     type="button"
-                    onClick={handleNewFamilyMember}
+                    onClick={handleOpenFamilyRegistration}
                   >
                     Registrar familiar
                   </button>
@@ -1074,11 +1166,14 @@ function StudentRecordPage({
               {canManageFamily && isFamilyFormOpen && (
                 <div className="student-record-card__content">
                   <h3 className="student-record-form-title">
-                    Nuevo familiar
+                    {editingFamilyMember
+                      ? 'Editar familiar'
+                      : 'Nuevo familiar'}
                   </h3>
 
                   <StudentFamilyMemberForm
-                    key={`new-family-${studentId}`}
+                    key={editingFamilyMember?.id ?? 'new'}
+                    initialData={editingFamilyMember}
                     onSubmit={handleFamilySubmit}
                     onCancel={handleFamilyCancel}
                     isSubmitting={isSavingFamily}
@@ -1089,8 +1184,14 @@ function StudentRecordPage({
 
               {!isFamilyFormOpen && (
                 <StudentFamilyMemberList
-                  familyMembers={familyItems}
-                />
+                familyMembers={familyItems}
+                canManage={canManageFamily}
+                onEdit={handleFamilyEdit}
+                onDeactivate={handleFamilyDeactivate}
+                deactivatingId={
+                  deactivatingFamilyMemberId
+                }
+              />
               )}
             </section>
           )}

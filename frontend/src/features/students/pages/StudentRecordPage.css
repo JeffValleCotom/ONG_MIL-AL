@@ -281,3 +281,10 @@ tbody tr:last-child td {
     justify-content: flex-start;
   }
 }
+
+.student-family-member__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}

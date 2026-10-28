@@ -92,6 +92,56 @@ export function createStudentFamilyMember(
 }
 
 
+export function updateStudentFamilyMember(
+  studentId,
+  familyMemberId,
+  familyMemberData,
+  context = ''
+) {
+  const params = new URLSearchParams()
+
+  if (context) {
+    params.set('context', context)
+  }
+
+  const queryString = params.toString()
+
+  return apiRequest(
+    `/students/${studentId}/family-members/${familyMemberId}/`
+    + `${queryString ? `?${queryString}` : ''}`,
+    {
+      method: 'PATCH',
+      data: familyMemberData,
+    }
+  )
+}
+
+
+export function deactivateStudentFamilyMember(
+  studentId,
+  familyMemberId,
+  context = ''
+) {
+  const params = new URLSearchParams()
+
+  if (context) {
+    params.set('context', context)
+  }
+
+  const queryString = params.toString()
+
+  return apiRequest(
+    `/students/${studentId}/family-members/`
+    + `${familyMemberId}/deactivate/`
+    + `${queryString ? `?${queryString}` : ''}`,
+    {
+      method: 'PATCH',
+      data: {},
+    }
+  )
+}
+
+
 export function activateStudent(studentId) {
   return apiRequest(`/students/${studentId}/activate/`, {
     method: 'PATCH',

@@ -21,6 +21,7 @@ from .serializers import (
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from apps.academic.access import has_docente_permission
 from apps.psychology.access import (
     has_psychologist_permission,
@@ -79,6 +80,8 @@ class StudentViewSet(
         "activate": "manage_students",
         "deactivate": "manage_students",
         "family_members": "manage_students",
+        "family_member_detail": "manage_students",
+        "deactivate_family_member": "manage_students",
     }
 
     def get_required_permission(self):
@@ -140,6 +143,8 @@ class StudentViewSet(
                     "partial_update",
                     "activate",
                     "deactivate",
+                    "family_member_detail",
+                    "deactivate_family_member",
                 }
                 or is_family_write
             )
@@ -326,6 +331,138 @@ class StudentViewSet(
         return Response(
             serializer.data,
             status=status.HTTP_201_CREATED,
+        )
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path=(
+            r"family-members/"
+            r"(?P<family_member_id>\d+)"
+        ),
+    )
+    def family_member_detail(
+        self,
+        request,
+        pk=None,
+        family_member_id=None,
+    ):
+        student = self.get_object()
+        context = self.get_student_access_context()
+
+        if (
+            context != "RESPONSABLE_INSTITUCIONAL"
+            or not has_responsible_permission(
+                request.user,
+                "manage_students",
+            )
+        ):
+            raise exceptions.PermissionDenied(
+                "No tiene permiso para gestionar "
+                "la información familiar."
+            )
+
+        family_member = get_object_or_404(
+            student.family_members.all(),
+            pk=family_member_id,
+        )
+
+        serializer = StudentFamilyMemberSerializer(
+            family_member,
+            data=request.data,
+            partial=True,
+            context={
+                **self.get_serializer_context(),
+                "student": student,
+            },
+        )
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        try:
+            with transaction.atomic():
+                serializer.save(
+                    updated_by=request.user,
+                )
+        except IntegrityError as exc:
+            if serializer.validated_data.get(
+                "is_primary_contact",
+                family_member.is_primary_contact,
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "is_primary_contact": (
+                            "El estudiante ya posee un "
+                            "contacto principal activo."
+                        )
+                    }
+                ) from exc
+
+            raise
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path=(
+            r"family-members/"
+            r"(?P<family_member_id>\d+)/deactivate"
+        ),
+    )
+    def deactivate_family_member(
+        self,
+        request,
+        pk=None,
+        family_member_id=None,
+    ):
+        student = self.get_object()
+        context = self.get_student_access_context()
+
+        if (
+            context != "RESPONSABLE_INSTITUCIONAL"
+            or not has_responsible_permission(
+                request.user,
+                "manage_students",
+            )
+        ):
+            raise exceptions.PermissionDenied(
+                "No tiene permiso para gestionar "
+                "la información familiar."
+            )
+
+        family_member = get_object_or_404(
+            student.family_members.all(),
+            pk=family_member_id,
+        )
+
+        if family_member.is_active:
+            family_member.is_active = False
+            family_member.is_primary_contact = False
+            family_member.deactivated_at = timezone.now()
+            family_member.updated_by = request.user
+
+            family_member.save(
+                update_fields=[
+                    "is_active",
+                    "is_primary_contact",
+                    "deactivated_at",
+                    "updated_by",
+                    "updated_at",
+                ]
+            )
+
+        serializer = StudentFamilyMemberSerializer(
+            family_member,
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
         )
 
     @action(
