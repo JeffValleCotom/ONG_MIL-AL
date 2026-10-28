@@ -453,3 +453,169 @@ La decisión es:
 No se crearán estructuras paralelas, endpoints duplicados ni componentes frontend equivalentes para satisfacer artificialmente las tareas del backlog.
 
 La finalización de cada tarea se demostrará mediante trazabilidad, validación técnica y, únicamente cuando corresponda, cambios incrementales sobre la implementación existente.
+
+## 22. Validación de TASK-62 — Estructura de base de datos académica
+
+TASK-62 requiere crear la estructura de base de datos necesaria para almacenar el seguimiento académico.
+
+Durante la ejecución de HU-11 se verificó que esta estructura ya había sido implementada previamente como dependencia de HU-07.
+
+Por lo tanto, no se crea una segunda tabla ni una nueva migración equivalente.
+
+### Modelo canónico
+
+La estructura persistente continúa siendo:
+
+`AcademicFollowUp`
+
+definida en:
+
+```text
+backend/apps/academic/models.py
+```
+
+y materializada inicialmente mediante:
+
+```text
+backend/apps/academic/migrations/0001_initial.py
+```
+
+### Estado de la migración
+
+La migración académica existente fue verificada mediante Django y se encuentra aplicada:
+
+```text
+academic
+ [X] 0001_initial
+```
+
+La comparación entre el modelo actual y el estado de migraciones reportó:
+
+```text
+No changes detected in app 'academic'
+```
+
+Esto confirma que no existe actualmente una divergencia que requiera generar una migración adicional.
+
+### Validación del proyecto Django
+
+La comprobación general del proyecto reportó:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+Por lo tanto, la aplicación académica se encuentra correctamente integrada con la configuración actual de Django.
+
+### Existencia de la tabla física
+
+Mediante la introspección de la conexión configurada hacia SQL Server se confirmó la existencia de:
+
+```text
+academic_academicfollowup
+```
+
+La consulta de introspección retornó:
+
+```text
+True
+```
+
+Esto confirma que la estructura no existe únicamente como modelo o migración pendiente, sino que está materializada en la base de datos configurada.
+
+### Columnas verificadas
+
+La tabla física contiene:
+
+```text
+id
+followup_date
+academic_period
+subject
+observations
+strengths
+areas_for_improvement
+recommendations
+created_at
+updated_at
+created_by_id
+student_id
+updated_by_id
+```
+
+Estas columnas corresponden con la estructura definida para `AcademicFollowUp`.
+
+Los campos de texto opcionales a nivel funcional, como:
+
+```text
+strengths
+areas_for_improvement
+recommendations
+```
+
+utilizan `blank=True` en Django pero permanecen `NOT NULL` en SQL Server.
+
+Esto es consistente con el diseño actual: su ausencia se representa mediante una cadena vacía y no mediante un valor SQL `NULL`.
+
+### Clave primaria
+
+Se verificó una clave primaria sobre:
+
+```text
+id
+```
+
+correspondiente al identificador interno de `AcademicFollowUp`.
+
+### Relaciones e integridad referencial
+
+La tabla contiene las relaciones esperadas:
+
+```text
+created_by_id -> users_user.id
+student_id    -> students_student.id
+updated_by_id -> users_user.id
+```
+
+Estas relaciones preservan la asociación con el estudiante y la trazabilidad de creación y actualización.
+
+### Índice académico
+
+Se verificó físicamente el índice:
+
+```text
+academic_student_date_idx
+```
+
+sobre:
+
+```text
+student_id
+followup_date
+```
+
+El índice coincide con el definido en el modelo y facilita las consultas de seguimientos académicos por estudiante y fecha.
+
+Además, SQL Server mantiene índices asociados a las claves foráneas de:
+
+```text
+created_by_id
+student_id
+updated_by_id
+```
+
+### Decisión de TASK-62
+
+La estructura requerida por TASK-62 ya se encuentra implementada, migrada y materializada en SQL Server.
+
+Por esta razón:
+
+- no se modifica `AcademicFollowUp`;
+- no se crea una tabla académica adicional;
+- no se genera una migración `0002` sin una necesidad real;
+- no se modifica la API ni el frontend;
+- TASK-62 se completa mediante validación y trazabilidad de la implementación existente.
+
+Cualquier cambio futuro en la estructura académica deberá responder a un requerimiento funcional verificable y producir su migración correspondiente mediante el flujo normal de Django.
+
+Esta decisión evita duplicar una estructura que ya satisface el diseño definido por HU-11.
