@@ -1057,3 +1057,262 @@ Por esta razón:
 - TASK-64 se completa mediante auditoría, validación y trazabilidad.
 
 Las pruebas finales de aceptación correspondientes al seguimiento académico serán revisadas de forma integral en TASK-66.
+
+## 25. Validación de TASK-65 — Actualización del seguimiento
+
+TASK-65 requiere implementar la actualización de los seguimientos académicos registrados.
+
+Durante la auditoría de HU-11 se confirmó que el flujo principal de actualización ya había sido implementado previamente junto con la integración académica del expediente.
+
+Por lo tanto, TASK-65 no introduce un segundo endpoint de actualización, otro formulario ni un servicio frontend equivalente.
+
+### Implementación existente reutilizada
+
+La API académica utiliza el endpoint existente:
+
+```text
+PATCH /api/v1/academic-followups/{id}/?context=DOCENTE
+```
+
+La acción `partial_update` requiere el permiso funcional:
+
+```text
+manage_academic_followups
+```
+
+El frontend utiliza el servicio existente:
+
+```text
+updateAcademicFollowUp(...)
+```
+
+que realiza la solicitud mediante `PATCH`.
+
+El formulario `AcademicFollowUpForm` también se reutiliza para la edición mediante `initialFollowUp`.
+
+Cuando existe un seguimiento en edición, el formulario carga los valores actuales y presenta la acción:
+
+```text
+Guardar cambios
+```
+
+### Flujo frontend de actualización
+
+`StudentRecordPage.jsx` conserva en estado el seguimiento seleccionado para edición.
+
+Cuando el formulario se envía y existe `editingFollowUp`, se ejecuta:
+
+```text
+updateAcademicFollowUp(...)
+```
+
+utilizando:
+
+```text
+followUpId
+context
+followUpData
+```
+
+Después de una actualización exitosa:
+
+- se cierra el formulario;
+- se limpia el seguimiento en edición;
+- se presenta un mensaje de confirmación;
+- se vuelve a consultar el expediente para actualizar la información mostrada.
+
+No se implementa un flujo paralelo de actualización.
+
+### Campos actualizables
+
+La actualización reutiliza los campos del seguimiento académico:
+
+```text
+followup_date
+academic_period
+subject
+observations
+strengths
+areas_for_improvement
+recommendations
+```
+
+Las validaciones existentes del serializer y del formulario continúan aplicándose durante la edición.
+
+### Inmutabilidad del estudiante
+
+El estudiante asociado a un seguimiento académico no puede modificarse durante una actualización.
+
+Si una solicitud `PATCH` contiene:
+
+```text
+student_id
+```
+
+la API rechaza la operación.
+
+Esta regla evita trasladar un seguimiento histórico de un estudiante hacia otro.
+
+### Auditoría de actualización
+
+El campo:
+
+```text
+updated_by
+```
+
+es establecido por Django a partir del usuario autenticado que realiza la actualización.
+
+El cliente no controla el valor de auditoría.
+
+El campo `created_by` conserva al autor original del seguimiento.
+
+### Alcance de autorización
+
+La actualización utiliza el mismo queryset restringido aplicado a la consulta académica.
+
+Por lo tanto, el usuario solo puede actualizar seguimientos que:
+
+```text
+fueron creados por el propio usuario
+pertenecen a un estudiante dentro de su asignación DOCENTE activa
+```
+
+Además, la operación requiere:
+
+```text
+context=DOCENTE
+manage_academic_followups
+```
+
+El permiso de consulta:
+
+```text
+view_academic_followups
+```
+
+no concede por sí solo capacidad de actualización.
+
+### Faltante identificado durante TASK-65
+
+La API ya diferenciaba correctamente los permisos de consulta y administración.
+
+Sin embargo, la interfaz enviaba siempre:
+
+```text
+onEdit={handleAcademicEdit}
+```
+
+a `AcademicFollowUpList`.
+
+El componente muestra la acción `Editar` siempre que recibe `onEdit`.
+
+Como consecuencia, un docente con acceso de consulta pero sin `manage_academic_followups` podía visualizar una acción de edición que posteriormente sería rechazada correctamente por Django.
+
+La seguridad backend no estaba comprometida, pero existía una inconsistencia entre las acciones visibles en frontend y las capacidades autorizadas por el servidor.
+
+### Corrección frontend
+
+TASK-65 reutiliza la capability incorporada previamente:
+
+```text
+manage_academic
+```
+
+`StudentRecordPage.jsx` ahora proporciona `handleAcademicEdit` únicamente cuando:
+
+```text
+canManageAcademic = true
+```
+
+Cuando la capability es falsa, `AcademicFollowUpList` recibe `onEdit` como `undefined`.
+
+El componente ya estaba preparado para este comportamiento y no requiere modificaciones adicionales, porque solo renderiza el botón `Editar` cuando existe un callback de edición.
+
+De esta forma, la interfaz consume la autorización calculada por Django sin replicar grupos, permisos ni reglas RBAC en React.
+
+### Separación entre consulta y actualización
+
+Se agregó una prueba específica para un docente que conserva acceso de consulta pero pierde:
+
+```text
+manage_academic_followups
+```
+
+En ese escenario se verifica que:
+
+```text
+GET detalle -> 200 OK
+PATCH detalle -> 403 Forbidden
+```
+
+También se comprueba que el contenido original del seguimiento permanece sin modificaciones después del intento rechazado.
+
+Esta cobertura demuestra explícitamente que:
+
+```text
+view_academic_followups != manage_academic_followups
+```
+
+y que consultar un seguimiento no implica autorización para actualizarlo.
+
+### Cobertura existente conservada
+
+Las pruebas existentes continúan verificando:
+
+```text
+docente autorizado puede actualizar su seguimiento
+updated_by registra al usuario autenticado
+student_id no puede modificarse
+otro docente no puede actualizar el seguimiento
+DELETE continúa deshabilitado
+```
+
+TASK-65 agrega únicamente la cobertura faltante sobre separación entre permisos de consulta y actualización.
+
+### Validación técnica
+
+Después de los cambios se ejecutaron conjuntamente las pruebas académicas y del expediente:
+
+```text
+Found 40 test(s).
+System check identified no issues (0 silenced).
+Ran 40 tests.
+OK
+```
+
+También se validó la compilación de producción del frontend:
+
+```text
+vite v8.3.4 building client environment for production...
+66 modules transformed.
+built successfully
+```
+
+`git diff --check` no reportó errores de formato.
+
+### Decisión de TASK-65
+
+TASK-65 reutiliza el mecanismo existente de actualización y corrige únicamente el faltante real encontrado durante la auditoría.
+
+No se modifican:
+
+```text
+AcademicFollowUp
+estructura de base de datos
+migraciones
+AcademicFollowUpSerializer
+AcademicFollowUpViewSet
+academicService.js
+AcademicFollowUpForm.jsx
+AcademicFollowUpList.jsx
+```
+
+Los cambios funcionales se limitan a:
+
+```text
+controlar la disponibilidad visual de Editar mediante manage_academic
+agregar cobertura de autorización view frente a manage
+```
+
+Django continúa siendo la autoridad final de seguridad aunque la interfaz oculte las acciones no autorizadas.

@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -596,6 +596,76 @@ class AcademicFollowUpAPITests(APITestCase):
         self.assertEqual(
             followup.updated_by,
             docente,
+        )
+
+    def test_docente_without_manage_permission_cannot_update_followup(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_academic_view_only",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            student=self.student_ana,
+        )
+
+        followup = self.create_followup(
+            student=self.student_ana,
+            author=docente,
+        )
+
+        docente_group = Group.objects.get(
+            name="DOCENTE",
+        )
+
+        docente_group.permissions.remove(
+            Permission.objects.get(
+                codename="manage_academic_followups",
+            )
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        detail_url = reverse(
+            "academic-followup-detail",
+            kwargs={
+                "pk": followup.pk,
+            },
+        )
+
+        view_response = self.client.get(
+            f"{detail_url}?context=DOCENTE"
+        )
+
+        self.assertEqual(
+            view_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        update_response = self.client.patch(
+            f"{detail_url}?context=DOCENTE",
+            {
+                "observations": (
+                    "Intento de actualización sin permiso."
+                ),
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            update_response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        followup.refresh_from_db()
+
+        self.assertEqual(
+            followup.observations,
+            "Seguimiento académico de prueba.",
         )
 
     def test_student_cannot_be_changed_during_update(
