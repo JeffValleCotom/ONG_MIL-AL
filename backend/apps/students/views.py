@@ -39,6 +39,10 @@ from apps.therapy.access import (
     has_therapist_permission,
 )
 from .access import has_responsible_permission
+from .document_validation import (
+    DocumentValidationError,
+    validate_uploaded_document,
+)
 from rest_framework.parsers import FormParser, MultiPartParser
 
 User = get_user_model()
@@ -645,37 +649,18 @@ class StudentViewSet(
             "file"
         ]
 
-        original_filename = (
-            uploaded_file.name
-            .replace("\\", "/")
-            .rsplit("/", 1)[-1]
-            .strip()
-        )
-
-        if not original_filename:
+        try:
+            validation_result = (
+                validate_uploaded_document(
+                    uploaded_file
+                )
+            )
+        except DocumentValidationError as exc:
             raise serializers.ValidationError(
                 {
-                    "file": (
-                        "El archivo debe poseer "
-                        "un nombre válido."
-                    )
+                    "file": str(exc),
                 }
-            )
-
-        mime_type = (
-            uploaded_file.content_type
-            or "application/octet-stream"
-        ).strip()
-
-        if len(mime_type) > 100:
-            raise serializers.ValidationError(
-                {
-                    "file": (
-                        "El tipo MIME declarado "
-                        "es demasiado largo."
-                    )
-                }
-            )
+            ) from exc
 
         sha256 = hashlib.sha256()
 
@@ -683,6 +668,10 @@ class StudentViewSet(
             sha256.update(chunk)
 
         uploaded_file.seek(0)
+
+        uploaded_file.name = (
+            f"document{validation_result.extension}"
+        )
 
         document_data = dict(
             serializer.validated_data
@@ -692,9 +681,11 @@ class StudentViewSet(
         document = StudentDocument(
             student=student,
             file=uploaded_file,
-            original_filename=original_filename,
-            mime_type=mime_type,
-            size_bytes=uploaded_file.size,
+            original_filename=(
+                validation_result.original_filename
+            ),
+            mime_type=validation_result.mime_type,
+            size_bytes=validation_result.size_bytes,
             sha256=sha256.hexdigest(),
             created_by=request.user,
             updated_by=request.user,

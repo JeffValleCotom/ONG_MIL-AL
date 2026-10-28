@@ -1,6 +1,65 @@
 import { useMemo, useState } from 'react'
 
 
+const MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024
+
+const ALLOWED_DOCUMENT_EXTENSIONS = new Set([
+  '.pdf',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.docx',
+])
+
+const DOCUMENT_ACCEPT = [
+  '.pdf',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.docx',
+].join(',')
+
+
+function getDocumentFileError(file) {
+  if (!file) {
+    return ''
+  }
+
+  if (file.size <= 0) {
+    return 'El archivo no puede estar vacío.'
+  }
+
+  if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
+    return 'El archivo no puede superar 10 MiB.'
+  }
+
+  if (file.name.length > 255) {
+    return (
+      'El nombre del archivo no puede exceder '
+      + '255 caracteres.'
+    )
+  }
+
+  const lastDotIndex = file.name.lastIndexOf('.')
+
+  if (lastDotIndex < 0) {
+    return 'El archivo debe poseer una extensión.'
+  }
+
+  const extension = file.name
+    .slice(lastDotIndex)
+    .toLowerCase()
+
+  if (!ALLOWED_DOCUMENT_EXTENSIONS.has(extension)) {
+    return (
+      'Formato de archivo no permitido. '
+      + 'Se admiten PDF, JPEG, PNG y DOCX.'
+    )
+  }
+
+  return ''
+}
+
 const DOCUMENT_TYPES_BY_CONTEXT = {
   DOCENTE: [
     {
@@ -71,14 +130,27 @@ function StudentDocumentUploadForm({
   const [description, setDescription] = useState('')
   const [file, setFile] = useState(null)
 
+  const [
+    fileValidationError,
+    setFileValidationError,
+  ] = useState('')
+
   function handleSubmit(event) {
     event.preventDefault()
+
+    const currentFileError = (
+      getDocumentFileError(file)
+    )
 
     if (
       isSubmitting
       || !documentType
       || !file
+      || currentFileError
     ) {
+      setFileValidationError(
+        currentFileError
+      )
       return
     }
 
@@ -191,14 +263,33 @@ function StudentDocumentUploadForm({
         <input
           id="student-document-file"
           type="file"
+          accept={DOCUMENT_ACCEPT}
           onChange={(event) => {
-            setFile(
+            const selectedFile = (
               event.target.files?.[0] ?? null
+            )
+
+            setFile(selectedFile)
+            setFileValidationError(
+              getDocumentFileError(selectedFile)
             )
           }}
           disabled={isSubmitting}
           required
         />
+        <small>
+          Formatos permitidos: PDF, JPEG, PNG y DOCX.
+          Tamaño máximo: 10 MiB.
+        </small>
+
+        {fileValidationError && (
+          <div
+            className="form-message form-message--error"
+            role="alert"
+          >
+            {fileValidationError}
+          </div>
+        )}
       </div>
 
       <div className="form-actions">
@@ -208,6 +299,7 @@ function StudentDocumentUploadForm({
           disabled={
             isSubmitting
             || !file
+            || Boolean(fileValidationError)
             || (
               documentType === 'OTRO'
               && !documentTypeDetail.trim()

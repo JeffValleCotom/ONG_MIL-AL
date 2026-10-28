@@ -158,6 +158,21 @@ La extensión enviada en el nombre original no se considerará suficiente para d
 
 Las reglas concretas de extensiones y MIME permitidos corresponden a TASK-59 - Implementar validaciones de documentos.
 
+### Política definida en TASK-59
+
+TASK-59 establece como formatos documentales permitidos:
+
+- PDF (`.pdf`);
+- JPEG (`.jpg`, `.jpeg`);
+- PNG (`.png`);
+- DOCX (`.docx`).
+
+La extensión se normalizará a minúsculas y deberá pertenecer al catálogo permitido.
+
+La extensión del nombre original no será suficiente para aceptar un archivo. El backend deberá contrastarla con el tipo MIME declarado y con una inspección estructural mínima del contenido.
+
+El nombre físico utilizará exclusivamente la extensión previamente validada y normalizada.
+
 ## 9. Estructura de almacenamiento
 
 En el entorno local se utilizará una raíz privada conceptual:
@@ -326,6 +341,16 @@ TASK-56 no define todavía el límite máximo permitido.
 
 El límite concreto será establecido en TASK-59.
 
+TASK-59 establece un tamaño máximo de:
+
+```text
+10 MiB = 10,485,760 bytes
+```
+
+Los archivos vacíos serán rechazados.
+
+La validación autoritativa se realizará en el backend antes de persistir el archivo.
+
 ## 18. Tipo MIME
 
 El sistema conservará un valor de tipo MIME asociado al archivo.
@@ -333,6 +358,38 @@ El sistema conservará un valor de tipo MIME asociado al archivo.
 El valor enviado por el navegador no será considerado automáticamente confiable.
 
 La estrategia de validación entre extensión, MIME declarado y contenido será definida en TASK-59.
+
+### Política MIME definida en TASK-59
+
+Los tipos MIME canónicos almacenados serán:
+
+| Extensión | MIME canónico |
+| --- | --- |
+| `.pdf` | `application/pdf` |
+| `.jpg`, `.jpeg` | `image/jpeg` |
+| `.png` | `image/png` |
+| `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
+
+El MIME enviado por el navegador no será considerado evidencia suficiente por sí mismo.
+
+Se admitirán valores declarados compatibles y, cuando corresponda, `application/octet-stream`, pero el archivo deberá superar además la inspección del contenido realizada por el backend.
+
+La validación estructural mínima será:
+
+- PDF: firma `%PDF-`;
+- JPEG: marcadores binarios esperados de inicio y final;
+- PNG: firma PNG e identificador `IHDR`;
+- DOCX: contenedor ZIP válido que incluya al menos `[Content_Types].xml` y `word/document.xml`.
+
+El MIME almacenado será el MIME canónico determinado por el backend y no necesariamente el valor declarado originalmente por el cliente.
+
+### Antivirus
+
+TASK-59 no declara un archivo como libre de malware ni implementa un motor antivirus ficticio.
+
+La solución actual realiza validación de tamaño, nombre, extensión, MIME declarado y estructura mínima del contenido.
+
+Una inspección antivirus real requerirá integrar explícitamente un motor o servicio especializado y deberá diseñarse como una medida adicional de endurecimiento de seguridad antes de afirmar que existe detección de malware.
 
 ## 19. Estado e historial
 
