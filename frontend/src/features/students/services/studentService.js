@@ -228,3 +228,52 @@ export function finishStudentAssignment(
     }
   )
 }
+
+export function uploadStudentDocument(
+  studentId,
+  documentData,
+  context = ''
+) {
+  const params = new URLSearchParams()
+
+  if (context) {
+    params.set('context', context)
+  }
+
+  const queryString = params.toString()
+
+  const formData = new FormData()
+
+  formData.append(
+    'document_type',
+    documentData.documentType
+  )
+
+  if (documentData.documentTypeDetail) {
+    formData.append(
+      'document_type_detail',
+      documentData.documentTypeDetail
+    )
+  }
+
+  if (documentData.description) {
+    formData.append(
+      'description',
+      documentData.description
+    )
+  }
+
+  formData.append(
+    'file',
+    documentData.file
+  )
+
+  return apiRequest(
+    `/students/${studentId}/documents/`
+    + `${queryString ? `?${queryString}` : ''}`,
+    {
+      method: 'POST',
+      body: formData,
+    }
+  )
+}

@@ -179,6 +179,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Private uploaded documents.
+# These files are never exposed through a public MEDIA_URL.
+PRIVATE_MEDIA_ROOT = BASE_DIR / "private_media"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
