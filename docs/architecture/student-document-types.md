@@ -193,3 +193,7 @@ OTRO
 ```
 
 Este catálogo constituye la base funcional para el diseño de almacenamiento documental de TASK-56.
+
+La arquitectura de almacenamiento, metadatos, conservación histórica e
+integridad de los archivos se define en
+`docs/architecture/student-document-storage.md`.
