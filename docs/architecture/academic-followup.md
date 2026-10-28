@@ -819,3 +819,241 @@ No se modifica `AcademicFollowUp`, la estructura de base de datos, las migracion
 La ampliación funcional realizada corresponde a `manage_academic` y a su consumo para controlar la disponibilidad visual de la acción de registro.
 
 La actualización de seguimientos académicos y el control visual de las acciones de edición permanecen fuera del alcance de TASK-63 y serán auditados específicamente en TASK-65.
+
+## 24. Validación de TASK-64 — Consulta académica
+
+TASK-64 requiere implementar la consulta de seguimientos académicos registrados para los estudiantes.
+
+Durante la auditoría de HU-11 se confirmó que esta funcionalidad ya había sido implementada previamente como parte de la integración académica del expediente estudiantil.
+
+Por lo tanto, TASK-64 no introduce un nuevo endpoint, un servicio frontend duplicado ni un componente adicional para presentar información académica.
+
+### Consulta académica existente
+
+La API académica utiliza el ViewSet existente:
+
+`AcademicFollowUpViewSet`
+
+y permite operaciones de consulta mediante:
+
+```text
+GET /api/v1/academic-followups/?context=DOCENTE
+GET /api/v1/academic-followups/{id}/?context=DOCENTE
+```
+
+Las acciones `list` y `retrieve` requieren el permiso funcional:
+
+```text
+view_academic_followups
+```
+
+La consulta académica también se integra en el expediente individual del estudiante mediante:
+
+```text
+GET /api/v1/students/{student_id}/record/?context=DOCENTE
+```
+
+El frontend obtiene este expediente mediante:
+
+```text
+getStudentRecord(...)
+```
+
+y presenta los seguimientos académicos existentes mediante:
+
+```text
+AcademicFollowUpList
+```
+
+### Información presentada
+
+El historial académico muestra la información registrada en cada seguimiento, incluyendo:
+
+```text
+subject
+academic_period
+followup_date
+observations
+strengths
+areas_for_improvement
+recommendations
+created_by
+```
+
+Cuando no existen seguimientos académicos disponibles, la interfaz presenta el estado vacío correspondiente.
+
+### Alcance de consulta por docente
+
+La consulta académica aplica restricciones tanto por asignación profesional como por autoría.
+
+El queryset académico requiere que el estudiante posea una asignación profesional:
+
+```text
+professional = usuario autenticado
+professional_role = DOCENTE
+is_active = true
+```
+
+Además, los seguimientos se restringen mediante:
+
+```text
+created_by = usuario autenticado
+```
+
+Por lo tanto, una asignación activa con un estudiante no concede acceso automático a seguimientos creados por otro docente.
+
+Cada docente consulta únicamente los seguimientos académicos creados por él mismo dentro de su alcance profesional activo.
+
+### Filtro por estudiante
+
+El listado permite filtrar mediante:
+
+```text
+student=<student_id>
+```
+
+El identificador recibido es validado antes de aplicar el filtro.
+
+Debe ser un número entero mayor que cero.
+
+Cuando el valor es válido, el queryset agrega la restricción:
+
+```text
+student_id = <student_id>
+```
+
+Este filtro no elimina las restricciones de autoría, contexto, permiso ni asignación profesional.
+
+### Consulta individual
+
+La consulta individual de un seguimiento utiliza el mismo queryset restringido que el listado.
+
+Como consecuencia, un seguimiento fuera del alcance del docente no es recuperable directamente mediante su identificador.
+
+La API responde como recurso no encontrado cuando el seguimiento no pertenece al queryset autorizado del usuario.
+
+### Aislamiento entre docentes
+
+Se encuentra cubierta específicamente la situación donde dos docentes tienen asignación activa sobre el mismo estudiante.
+
+En ese escenario:
+
+```text
+Docente A -> seguimiento creado por Docente A
+Docente B -> seguimiento creado por Docente B
+```
+
+cuando el Docente A consulta el historial del estudiante:
+
+- recibe su propio seguimiento;
+- no recibe el seguimiento creado por el Docente B;
+- no puede consultar directamente el seguimiento del Docente B.
+
+Esto confirma que la asignación compartida de un estudiante no produce intercambio de información académica entre docentes.
+
+### Aislamiento por contexto
+
+La API académica exige explícitamente:
+
+```text
+context=DOCENTE
+```
+
+La ausencia del contexto es rechazada.
+
+Un usuario con múltiples roles no puede utilizar su pertenencia al grupo `DOCENTE` para acceder a la información académica mientras opera bajo otro contexto profesional.
+
+Por ejemplo, el contexto:
+
+```text
+PSICOLOGO
+```
+
+no habilita el acceso a la API académica aunque el mismo usuario también posea el rol `DOCENTE`.
+
+El rol `RESPONSABLE_INSTITUCIONAL` tampoco obtiene acceso a la API de seguimientos académicos mediante el contexto `DOCENTE`.
+
+### Integración con el expediente
+
+En contexto `DOCENTE`, el expediente individual incluye una sección:
+
+```text
+academic
+```
+
+cuando el usuario posee el permiso correspondiente.
+
+Esta sección contiene los seguimientos académicos autorizados para el docente y es consumida por `StudentRecordPage.jsx`.
+
+La interfaz delega la presentación del historial en:
+
+```text
+AcademicFollowUpList.jsx
+```
+
+No se realiza acceso directo desde React a SQL Server ni se replica en frontend la lógica de autorización.
+
+### Seguridad de la consulta
+
+Django continúa siendo la autoridad de seguridad.
+
+La visibilidad frontend no sustituye las validaciones de backend.
+
+La consulta requiere conjuntamente:
+
+```text
+usuario autenticado
+contexto DOCENTE
+rol DOCENTE
+view_academic_followups
+asignación profesional DOCENTE activa
+autoría del seguimiento
+```
+
+El filtro opcional por estudiante únicamente reduce el queryset que ya fue autorizado y no amplía su alcance.
+
+### Cobertura existente
+
+Las pruebas existentes verifican, entre otros escenarios:
+
+```text
+docente asignado puede listar seguimientos
+docente solo lista estudiantes dentro de su alcance
+docente no puede recuperar un seguimiento no autorizado
+contexto obligatorio
+aislamiento multirrol por contexto
+responsable institucional sin acceso académico
+aislamiento entre docentes asignados al mismo estudiante
+filtro de listado por estudiante
+consulta individual fuera del alcance retorna 404
+```
+
+La cobertura específica de dos docentes asignados al mismo estudiante confirma tanto el filtrado por autor como el comportamiento de `?student=`.
+
+### Validación técnica
+
+Durante la auditoría de TASK-64 se ejecutaron conjuntamente las pruebas académicas y las pruebas del expediente:
+
+```text
+Found 39 test(s).
+System check identified no issues (0 silenced).
+Ran 39 tests.
+OK
+```
+
+Esto confirma que la consulta académica y su integración con el expediente continúan funcionando sobre la versión actual de HU-11.
+
+### Decisión de TASK-64
+
+La funcionalidad requerida por TASK-64 ya se encuentra implementada y cubierta por las pruebas existentes.
+
+Por esta razón:
+
+- no se crea un nuevo endpoint de consulta;
+- no se crea un servicio frontend académico equivalente;
+- no se modifica `AcademicFollowUpViewSet`;
+- no se modifica `AcademicFollowUpList`;
+- no se agregan pruebas redundantes en esta tarea;
+- TASK-64 se completa mediante auditoría, validación y trazabilidad.
+
+Las pruebas finales de aceptación correspondientes al seguimiento académico serán revisadas de forma integral en TASK-66.
