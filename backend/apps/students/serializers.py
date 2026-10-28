@@ -565,6 +565,9 @@ class StudentRecordCapabilitiesSerializer(
     manage_family = serializers.BooleanField(
         read_only=True,
     )
+    manage_academic = serializers.BooleanField(
+        read_only=True,
+    )
 
 
 class StudentRecordSerializer(

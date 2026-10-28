@@ -1144,6 +1144,9 @@ function StudentRecordPage({
   const canManageFamily = Boolean(
     capabilities.manage_family
   )
+  const canManageAcademic = Boolean(
+    capabilities.manage_academic
+  )
   const general = record?.sections?.general
   const family = record?.sections?.family
   const assignments =
@@ -1484,7 +1487,8 @@ function StudentRecordPage({
                   </p>
                 </div>
 
-                {general.is_active
+                {canManageAcademic
+                  && general.is_active
                   && !isAcademicFormOpen && (
                   <button
                     className="button button--primary"

@@ -818,9 +818,18 @@ class StudentViewSet(
             )
         )
 
+        can_manage_academic = (
+            context == "DOCENTE"
+            and has_docente_permission(
+                request.user,
+                "manage_academic_followups",
+            )
+        )
+
         capabilities = {
             "update_general": can_manage_students,
             "manage_family": can_manage_students,
+            "manage_academic": can_manage_academic,
         }
 
         sections = {

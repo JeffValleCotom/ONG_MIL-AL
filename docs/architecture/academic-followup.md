@@ -619,3 +619,203 @@ Por esta razón:
 Cualquier cambio futuro en la estructura académica deberá responder a un requerimiento funcional verificable y producir su migración correspondiente mediante el flujo normal de Django.
 
 Esta decisión evita duplicar una estructura que ya satisface el diseño definido por HU-11.
+
+## 23. Validación de TASK-63 — Registro académico
+
+TASK-63 requiere implementar el registro de seguimientos académicos para los estudiantes.
+
+Durante la auditoría de HU-11 se confirmó que el flujo principal de registro académico ya había sido implementado previamente como parte de HU-07.
+
+Por lo tanto, TASK-63 no introduce un segundo endpoint, un nuevo modelo, otro formulario ni un servicio frontend equivalente.
+
+### Implementación existente reutilizada
+
+El registro académico utiliza el modelo canónico:
+
+`AcademicFollowUp`
+
+y el endpoint existente:
+
+```text
+POST /api/v1/academic-followups/?context=DOCENTE
+```
+
+El servicio frontend correspondiente se encuentra en:
+
+```text
+frontend/src/features/academic/services/academicService.js
+```
+
+mediante:
+
+```text
+createAcademicFollowUp(...)
+```
+
+El formulario existente se encuentra en:
+
+```text
+frontend/src/features/academic/components/AcademicFollowUpForm.jsx
+```
+
+y está integrado en el expediente individual mediante:
+
+```text
+frontend/src/features/students/pages/StudentRecordPage.jsx
+```
+
+### Datos registrados
+
+El formulario permite registrar:
+
+```text
+followup_date
+academic_period
+subject
+observations
+strengths
+areas_for_improvement
+recommendations
+```
+
+El identificador del estudiante se incorpora desde el expediente abierto y no es seleccionado libremente desde el formulario.
+
+### Validaciones de entrada
+
+El flujo existente exige `followup_date`, `academic_period`, `subject` y `observations`.
+
+También impide fechas futuras, respeta las longitudes máximas definidas para período académico y materia, y normaliza los valores de texto antes del envío.
+
+Las validaciones del frontend funcionan como apoyo de experiencia de usuario. Las reglas autoritativas de validación y seguridad permanecen en Django.
+
+### Autorización del registro
+
+El endpoint de creación requiere el contexto:
+
+```text
+DOCENTE
+```
+
+y el permiso funcional:
+
+```text
+manage_academic_followups
+```
+
+Además, se verifica que el usuario posea una asignación profesional activa con el estudiante bajo el rol `DOCENTE`.
+
+Un docente no puede registrar seguimientos para estudiantes fuera de su alcance profesional activo.
+
+### Estado del estudiante
+
+No se permite registrar nuevos seguimientos académicos para estudiantes inactivos.
+
+Esta regla se valida en backend y también se refleja en la interfaz mediante la disponibilidad de la acción de registro.
+
+### Auditoría
+
+Al crear un seguimiento académico, los campos:
+
+```text
+created_by
+updated_by
+```
+
+se establecen a partir del usuario autenticado.
+
+La autoría no se recibe desde el cliente.
+
+### Faltante identificado durante TASK-63
+
+La auditoría determinó que el backend académico ya protegía correctamente la creación mediante `manage_academic_followups`, pero el contrato del expediente no exponía una capability equivalente para el frontend.
+
+Como consecuencia, la interfaz podía mostrar la acción `Registrar seguimiento` basándose únicamente en que el estudiante estuviera activo, aunque el usuario no tuviera permiso funcional para administrar seguimientos académicos.
+
+La seguridad del endpoint no estaba comprometida, porque Django continuaba rechazando operaciones no autorizadas. Sin embargo, existía una inconsistencia entre la autorización del backend y las acciones presentadas por la interfaz.
+
+### Capability académica
+
+Para resolver el faltante sin duplicar lógica de autorización se incorporó al contrato del expediente:
+
+```text
+manage_academic
+```
+
+La capability es calculada exclusivamente por Django.
+
+Su valor es verdadero únicamente cuando el contexto es `DOCENTE` y el usuario posee:
+
+```text
+manage_academic_followups
+```
+
+El frontend no calcula permisos a partir de grupos ni replica la matriz RBAC. Únicamente consume la capability proporcionada por el backend.
+
+### Integración frontend
+
+`StudentRecordPage.jsx` transforma la capability en:
+
+```text
+canManageAcademic
+```
+
+La acción de registrar seguimiento se presenta únicamente cuando `canManageAcademic` es verdadero, el estudiante se encuentra activo y no existe otro formulario académico abierto.
+
+Esta condición controla únicamente la disponibilidad visual de la acción. El backend continúa siendo la autoridad final sobre el acceso.
+
+### Cobertura agregada
+
+Se verificó que un docente autorizado recibe:
+
+```text
+manage_academic = true
+```
+
+También se agregó cobertura para un docente que conserva:
+
+```text
+view_academic_followups
+```
+
+pero pierde:
+
+```text
+manage_academic_followups
+```
+
+En ese escenario, el expediente y la sección académica continúan disponibles, mientras que:
+
+```text
+manage_academic = false
+```
+
+Esta separación mantiene diferenciados los permisos de consulta y administración.
+
+### Validación técnica
+
+Se ejecutaron conjuntamente las pruebas del expediente estudiantil y del seguimiento académico:
+
+```text
+Found 39 test(s).
+System check identified no issues (0 silenced).
+Ran 39 tests.
+OK
+```
+
+También se validó la compilación de producción del frontend mediante Vite:
+
+```text
+vite v8.3.4 building client environment for production...
+66 modules transformed.
+built successfully
+```
+
+### Alcance de TASK-63
+
+TASK-63 reutiliza la implementación de registro académico existente y completa únicamente el contrato de autorización necesario para la interfaz.
+
+No se modifica `AcademicFollowUp`, la estructura de base de datos, las migraciones, el serializer académico, el endpoint de creación, `createAcademicFollowUp` ni `AcademicFollowUpForm`.
+
+La ampliación funcional realizada corresponde a `manage_academic` y a su consumo para controlar la disponibilidad visual de la acción de registro.
+
+La actualización de seguimientos académicos y el control visual de las acciones de edición permanecen fuera del alcance de TASK-63 y serán auditados específicamente en TASK-65.
