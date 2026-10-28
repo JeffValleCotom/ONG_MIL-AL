@@ -229,6 +229,47 @@ export function finishStudentAssignment(
   )
 }
 
+export function getStudentDocuments(
+  studentId,
+  context = ''
+) {
+  const params = new URLSearchParams()
+
+  if (context) {
+    params.set('context', context)
+  }
+
+  const queryString = params.toString()
+
+  return apiRequest(
+    `/students/${studentId}/documents/`
+    + `${queryString ? `?${queryString}` : ''}`
+  )
+}
+
+export function downloadStudentDocument(
+  studentId,
+  documentId,
+  context = ''
+) {
+  const params = new URLSearchParams()
+
+  if (context) {
+    params.set('context', context)
+  }
+
+  const queryString = params.toString()
+
+  return apiRequest(
+    `/students/${studentId}/documents/`
+    + `${documentId}/download/`
+    + `${queryString ? `?${queryString}` : ''}`,
+    {
+      responseType: 'blob',
+    }
+  )
+}
+
 export function uploadStudentDocument(
   studentId,
   documentData,

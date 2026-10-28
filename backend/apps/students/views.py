@@ -1,6 +1,7 @@
 import hashlib
 import logging
 from django.db.models import Q
+from django.http import FileResponse
 from rest_framework import (
     exceptions,
     mixins,
@@ -23,6 +24,7 @@ from .serializers import (
     StudentRecordSerializer,
     StudentSerializer,
     StudentFamilyMemberSerializer,
+    StudentDocumentSerializer,
     StudentDocumentUploadSerializer,
 )
 from django.contrib.auth import get_user_model
@@ -93,6 +95,7 @@ class StudentViewSet(
         "family_member_detail": "manage_students",
         "deactivate_family_member": "manage_students",
         "documents": "view_students",
+        "document_download": "view_students",
     }
 
     def get_required_permission(self):
@@ -230,6 +233,62 @@ class StudentViewSet(
                 "No tiene permiso para cargar documentos "
                 "de este tipo en el contexto seleccionado."
             )
+
+    def get_visible_document_types(self, context):
+        user = self.request.user
+
+        if (
+            context == "DOCENTE"
+            and has_docente_permission(
+                user,
+                "view_academic_followups",
+            )
+        ):
+            return (
+                StudentDocument.DocumentType.ACADEMICO,
+            )
+
+        if (
+            context == "PSICOLOGO"
+            and has_psychologist_permission(
+                user,
+                "view_psychological_followups",
+            )
+        ):
+            return (
+                StudentDocument.DocumentType.PSICOLOGICO,
+            )
+
+        if (
+            context == "TERAPEUTA"
+            and has_therapist_permission(
+                user,
+                "view_interventions",
+            )
+        ):
+            return (
+                StudentDocument.DocumentType.TERAPEUTICO,
+            )
+
+        if (
+            context == "RESPONSABLE_INSTITUCIONAL"
+            and has_responsible_permission(
+                user,
+                "view_students",
+            )
+        ):
+            return (
+                StudentDocument.DocumentType.IDENTIFICACION,
+                StudentDocument.DocumentType.CONSENTIMIENTO_AUTORIZACION,
+                StudentDocument.DocumentType.MEDICO,
+                StudentDocument.DocumentType.INSTITUCIONAL,
+                StudentDocument.DocumentType.OTRO,
+            )
+
+        raise exceptions.PermissionDenied(
+            "No tiene permiso para consultar documentos "
+            "en el contexto seleccionado."
+        )
 
     def apply_student_scope(
         self,
@@ -531,7 +590,7 @@ class StudentViewSet(
 
     @action(
         detail=True,
-        methods=["post"],
+        methods=["get", "post"],
         url_path="documents",
         parser_classes=[
             MultiPartParser,
@@ -541,6 +600,29 @@ class StudentViewSet(
     def documents(self, request, pk=None):
         student = self.get_object()
         context = self.get_student_access_context()
+
+        if request.method == "GET":
+            visible_types = (
+                self.get_visible_document_types(
+                    context
+                )
+            )
+
+            documents = student.documents.filter(
+                document_type__in=visible_types,
+            )
+
+            serializer = StudentDocumentSerializer(
+                documents,
+                many=True,
+            )
+
+            return Response(
+                {
+                    "items": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
 
         serializer = StudentDocumentUploadSerializer(
             data=request.data,
@@ -663,6 +745,69 @@ class StudentViewSet(
             response_serializer.data,
             status=status.HTTP_201_CREATED,
         )
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path=(
+            r"documents/"
+            r"(?P<document_id>\d+)/download"
+        ),
+    )
+    def document_download(
+        self,
+        request,
+        pk=None,
+        document_id=None,
+    ):
+        student = self.get_object()
+        context = self.get_student_access_context()
+
+        visible_types = (
+            self.get_visible_document_types(
+                context
+            )
+        )
+
+        document = get_object_or_404(
+            StudentDocument.objects.filter(
+                student=student,
+                document_type__in=visible_types,
+            ),
+            pk=document_id,
+        )
+
+        if (
+            not document.file
+            or not document.file.storage.exists(
+                document.file.name
+            )
+        ):
+            raise exceptions.NotFound(
+                "El archivo del documento "
+                "no está disponible."
+            )
+
+        file_handle = document.file.open("rb")
+
+        response = FileResponse(
+            file_handle,
+            as_attachment=True,
+            filename=document.original_filename,
+            content_type=(
+                document.mime_type
+                or "application/octet-stream"
+            ),
+        )
+
+        response["Cache-Control"] = (
+            "private, no-store"
+        )
+        response["X-Content-Type-Options"] = (
+            "nosniff"
+        )
+
+        return response
 
     @action(
         detail=True,
