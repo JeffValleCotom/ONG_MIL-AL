@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from .models import (
     Student,
+    StudentDocument,
     StudentFamilyMember,
     StudentProfessionalAssignment,
 )
@@ -331,6 +332,101 @@ class StudentFamilyMemberSerializer(
         return attrs
 
 
+class StudentDocumentUploadSerializer(
+    serializers.ModelSerializer
+):
+    student_id = serializers.IntegerField(
+        read_only=True,
+    )
+
+    file = serializers.FileField(
+        write_only=True,
+    )
+
+    document_type_detail = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+        trim_whitespace=True,
+    )
+
+    description = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=True,
+    )
+
+    class Meta:
+        model = StudentDocument
+        fields = [
+            "id",
+            "student_id",
+            "document_type",
+            "document_type_detail",
+            "file",
+            "original_filename",
+            "mime_type",
+            "size_bytes",
+            "sha256",
+            "description",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "student_id",
+            "original_filename",
+            "mime_type",
+            "size_bytes",
+            "sha256",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        document_type = attrs.get(
+            "document_type",
+        )
+
+        document_type_detail = attrs.get(
+            "document_type_detail",
+            "",
+        ).strip()
+
+        if (
+            document_type
+            == StudentDocument.DocumentType.OTRO
+        ):
+            if not document_type_detail:
+                raise serializers.ValidationError(
+                    {
+                        "document_type_detail": (
+                            "Debe especificar el tipo de "
+                            "documento cuando selecciona OTRO."
+                        )
+                    }
+                )
+        elif document_type_detail:
+            raise serializers.ValidationError(
+                {
+                    "document_type_detail": (
+                        "El detalle solo puede indicarse "
+                        "cuando el tipo documental es OTRO."
+                    )
+                }
+            )
+
+        attrs["document_type_detail"] = (
+            document_type_detail
+        )
+
+        return attrs
+
+
 class StudentRecordGeneralSerializer(
     serializers.ModelSerializer
 ):
@@ -432,6 +528,7 @@ class StudentRecordSectionsSerializer(
         read_only=True,
         required=False,
     )
+
 
 class StudentRecordCapabilitiesSerializer(
     serializers.Serializer

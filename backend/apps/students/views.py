@@ -1,3 +1,5 @@
+import hashlib
+import logging
 from django.db.models import Q
 from rest_framework import (
     exceptions,
@@ -10,13 +12,18 @@ from rest_framework import (
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from apps.users.permissions import HasPlatformPermission
-from .models import Student, StudentProfessionalAssignment
+from .models import (
+    Student,
+    StudentDocument,
+    StudentProfessionalAssignment,
+)
 from .serializers import (
     AssignmentUserSummarySerializer,
     StudentProfessionalAssignmentSerializer,
     StudentRecordSerializer,
     StudentSerializer,
     StudentFamilyMemberSerializer,
+    StudentDocumentUploadSerializer,
 )
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
@@ -30,8 +37,11 @@ from apps.therapy.access import (
     has_therapist_permission,
 )
 from .access import has_responsible_permission
+from rest_framework.parsers import FormParser, MultiPartParser
 
 User = get_user_model()
+
+logger = logging.getLogger(__name__)
 
 STUDENT_ACCESS_CONTEXTS = (
     "DOCENTE",
@@ -82,6 +92,7 @@ class StudentViewSet(
         "family_members": "manage_students",
         "family_member_detail": "manage_students",
         "deactivate_family_member": "manage_students",
+        "documents": "view_students",
     }
 
     def get_required_permission(self):
@@ -166,6 +177,59 @@ class StudentViewSet(
             )
 
         return None
+
+    def require_document_upload_permission(
+        self,
+        context,
+        document_type,
+    ):
+        if (
+            document_type
+            == StudentDocument.DocumentType.ACADEMICO
+        ):
+            allowed = (
+                context == "DOCENTE"
+                and has_docente_permission(
+                    self.request.user,
+                    "manage_academic_followups",
+                )
+            )
+        elif (
+            document_type
+            == StudentDocument.DocumentType.PSICOLOGICO
+        ):
+            allowed = (
+                context == "PSICOLOGO"
+                and has_psychologist_permission(
+                    self.request.user,
+                    "manage_psychological_followups",
+                )
+            )
+        elif (
+            document_type
+            == StudentDocument.DocumentType.TERAPEUTICO
+        ):
+            allowed = (
+                context == "TERAPEUTA"
+                and has_therapist_permission(
+                    self.request.user,
+                    "manage_interventions",
+                )
+            )
+        else:
+            allowed = (
+                context == "RESPONSABLE_INSTITUCIONAL"
+                and has_responsible_permission(
+                    self.request.user,
+                    "manage_students",
+                )
+            )
+
+        if not allowed:
+            raise exceptions.PermissionDenied(
+                "No tiene permiso para cargar documentos "
+                "de este tipo en el contexto seleccionado."
+            )
 
     def apply_student_scope(
         self,
@@ -463,6 +527,141 @@ class StudentViewSet(
         return Response(
             serializer.data,
             status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="documents",
+        parser_classes=[
+            MultiPartParser,
+            FormParser,
+        ],
+    )
+    def documents(self, request, pk=None):
+        student = self.get_object()
+        context = self.get_student_access_context()
+
+        serializer = StudentDocumentUploadSerializer(
+            data=request.data,
+            context=self.get_serializer_context(),
+        )
+        serializer.is_valid(
+            raise_exception=True,
+        )
+
+        document_type = serializer.validated_data[
+            "document_type"
+        ]
+
+        self.require_document_upload_permission(
+            context,
+            document_type,
+        )
+
+        uploaded_file = serializer.validated_data[
+            "file"
+        ]
+
+        original_filename = (
+            uploaded_file.name
+            .replace("\\", "/")
+            .rsplit("/", 1)[-1]
+            .strip()
+        )
+
+        if not original_filename:
+            raise serializers.ValidationError(
+                {
+                    "file": (
+                        "El archivo debe poseer "
+                        "un nombre válido."
+                    )
+                }
+            )
+
+        mime_type = (
+            uploaded_file.content_type
+            or "application/octet-stream"
+        ).strip()
+
+        if len(mime_type) > 100:
+            raise serializers.ValidationError(
+                {
+                    "file": (
+                        "El tipo MIME declarado "
+                        "es demasiado largo."
+                    )
+                }
+            )
+
+        sha256 = hashlib.sha256()
+
+        for chunk in uploaded_file.chunks():
+            sha256.update(chunk)
+
+        uploaded_file.seek(0)
+
+        document_data = dict(
+            serializer.validated_data
+        )
+        document_data.pop("file")
+
+        document = StudentDocument(
+            student=student,
+            file=uploaded_file,
+            original_filename=original_filename,
+            mime_type=mime_type,
+            size_bytes=uploaded_file.size,
+            sha256=sha256.hexdigest(),
+            created_by=request.user,
+            updated_by=request.user,
+            **document_data,
+        )
+
+        try:
+            with transaction.atomic():
+                document.save()
+        except Exception:
+            stored_name = (
+                document.file.name
+                if document.file
+                else ""
+            )
+
+            normalized_name = stored_name.replace(
+                "\\",
+                "/",
+            )
+
+            expected_prefix = (
+                f"students/{student.pk}/documents/"
+            )
+
+            if normalized_name.startswith(
+                expected_prefix
+            ):
+                try:
+                    document.file.storage.delete(
+                        stored_name
+                    )
+                except Exception:
+                    logger.exception(
+                        "No fue posible eliminar un "
+                        "archivo documental huérfano."
+                    )
+
+            raise
+
+        response_serializer = (
+            StudentDocumentUploadSerializer(
+                document
+            )
+        )
+
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED,
         )
 
     @action(

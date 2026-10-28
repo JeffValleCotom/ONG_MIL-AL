@@ -1,8 +1,13 @@
+from pathlib import Path
+from uuid import uuid4
+
 from django.db import models
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+
+from .storage import private_student_document_storage
 
 
 class Student(models.Model):
@@ -33,6 +38,7 @@ class Student(models.Model):
             f"{self.institutional_code} - "
             f"{self.first_name} {self.last_name}"
         )
+
 
 class StudentProfessionalAssignment(models.Model):
     class ProfessionalRole(models.TextChoices):
@@ -112,6 +118,7 @@ class StudentProfessionalAssignment(models.Model):
             f"{self.professional.username} - "
             f"{self.professional_role}"
         )
+
 
 class StudentFamilyMember(models.Model):
     class Relationship(models.TextChoices):
@@ -241,4 +248,170 @@ class StudentFamilyMember(models.Model):
             f"{self.student.institutional_code} - "
             f"{self.first_name} {self.last_name} - "
             f"{self.relationship}"
+        )
+
+
+def student_document_upload_to(instance, filename):
+    extension = Path(filename).suffix.lower()
+    now = timezone.now()
+
+    physical_name = f"{uuid4().hex}{extension}"
+
+    return (
+        f"students/{instance.student_id}/documents/"
+        f"{now.year:04d}/{now.month:02d}/{physical_name}"
+    )
+
+
+class StudentDocument(models.Model):
+
+    class DocumentType(models.TextChoices):
+        IDENTIFICACION = (
+            "IDENTIFICACION",
+            "Documento de identificación",
+        )
+        CONSENTIMIENTO_AUTORIZACION = (
+            "CONSENTIMIENTO_AUTORIZACION",
+            "Consentimiento o autorización",
+        )
+        ACADEMICO = (
+            "ACADEMICO",
+            "Documento académico",
+        )
+        MEDICO = (
+            "MEDICO",
+            "Documento médico",
+        )
+        PSICOLOGICO = (
+            "PSICOLOGICO",
+            "Documento psicológico",
+        )
+        TERAPEUTICO = (
+            "TERAPEUTICO",
+            "Documento terapéutico",
+        )
+        INSTITUCIONAL = (
+            "INSTITUCIONAL",
+            "Documento institucional",
+        )
+        OTRO = (
+            "OTRO",
+            "Otro documento",
+        )
+
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.PROTECT,
+        related_name="documents",
+    )
+
+    document_type = models.CharField(
+        max_length=30,
+        choices=DocumentType.choices,
+    )
+
+    document_type_detail = models.CharField(
+        max_length=150,
+        blank=True,
+        default="",
+    )
+
+    original_filename = models.CharField(
+        max_length=255,
+    )
+
+    file = models.FileField(
+        upload_to=student_document_upload_to,
+        storage=private_student_document_storage,
+        max_length=500,
+    )
+
+    mime_type = models.CharField(
+        max_length=100,
+    )
+
+    size_bytes = models.PositiveBigIntegerField()
+
+    sha256 = models.CharField(
+        max_length=64,
+    )
+
+    description = models.TextField(
+        blank=True,
+        default="",
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+    )
+
+    deactivated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="student_documents_created",
+    )
+
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="student_documents_updated",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = [
+            "-is_active",
+            "-created_at",
+            "-id",
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        is_active=True,
+                        deactivated_at__isnull=True,
+                    )
+                    | Q(
+                        is_active=False,
+                        deactivated_at__isnull=False,
+                    )
+                ),
+                name="student_document_status_dates_ck",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        document_type="OTRO",
+                    )
+                    & ~Q(
+                        document_type_detail="",
+                    )
+                    | ~Q(
+                        document_type="OTRO",
+                    )
+                    & Q(
+                        document_type_detail="",
+                    )
+                ),
+                name="student_document_type_detail_ck",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.student.institutional_code} - "
+            f"{self.document_type} - "
+            f"{self.original_filename}"
         )

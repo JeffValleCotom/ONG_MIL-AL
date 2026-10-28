@@ -14,6 +14,7 @@ import {
   deactivateStudentFamilyMember,
   getStudentRecord,
   updateStudent,
+  uploadStudentDocument,
 } from '../services/studentService'
 import StudentEditForm
   from '../components/StudentEditForm'
@@ -40,6 +41,9 @@ import {
 } from '../../therapy/services/therapyService'
 import StudentRecordAssignmentHistory
   from '../components/StudentRecordAssignmentHistory'
+import StudentDocumentUploadForm
+  from '../components/StudentDocumentUploadForm'
+
 
 function formatDate(value) {
   if (!value) {
@@ -264,6 +268,49 @@ function getFamilyErrorMessage(error) {
   )
 }
 
+function getDocumentErrorMessage(error) {
+  const data = error?.data
+
+  if (!data) {
+    return (
+      error?.message
+      || 'No fue posible cargar el documento.'
+    )
+  }
+
+  const fieldOrder = [
+    'file',
+    'document_type',
+    'document_type_detail',
+    'description',
+    'context',
+    'detail',
+  ]
+
+  for (const field of fieldOrder) {
+    const value = data[field]
+
+    if (
+      Array.isArray(value)
+      && value.length > 0
+    ) {
+      return value[0]
+    }
+
+    if (
+      typeof value === 'string'
+      && value
+    ) {
+      return value
+    }
+  }
+
+  return (
+    error?.message
+    || 'No fue posible cargar el documento.'
+  )
+}
+
 function StudentRecordPage({
   studentId,
   studentContext,
@@ -395,6 +442,26 @@ function StudentRecordPage({
   const [
     therapySuccess,
     setTherapySuccess,
+  ] = useState('')
+
+  const [
+    isDocumentFormOpen,
+    setIsDocumentFormOpen,
+  ] = useState(false)
+
+  const [
+    isSavingDocument,
+    setIsSavingDocument,
+  ] = useState(false)
+
+  const [
+    documentError,
+    setDocumentError,
+  ] = useState('')
+
+  const [
+    documentSuccess,
+    setDocumentSuccess,
   ] = useState('')
 
   useEffect(() => {
@@ -896,6 +963,52 @@ function StudentRecordPage({
     }
   }
 
+  function handleOpenDocumentUpload() {
+    setDocumentError('')
+    setDocumentSuccess('')
+    setIsDocumentFormOpen(true)
+  }
+
+  function handleDocumentCancel() {
+    if (isSavingDocument) {
+      return
+    }
+
+    setDocumentError('')
+    setIsDocumentFormOpen(false)
+  }
+
+  async function handleDocumentSubmit(
+    documentData
+  ) {
+    if (isSavingDocument) {
+      return
+    }
+
+    setIsSavingDocument(true)
+    setDocumentError('')
+    setDocumentSuccess('')
+
+    try {
+      await uploadStudentDocument(
+        studentId,
+        documentData,
+        studentContext
+      )
+
+      setIsDocumentFormOpen(false)
+      setDocumentSuccess(
+        'Documento cargado correctamente.'
+      )
+    } catch (saveError) {
+      setDocumentError(
+        getDocumentErrorMessage(saveError)
+      )
+    } finally {
+      setIsSavingDocument(false)
+    }
+  }
+
   const capabilities = record?.capabilities ?? {}
 
   const canUpdateGeneral = Boolean(
@@ -957,6 +1070,7 @@ function StudentRecordPage({
             || isSavingAcademic
             || isSavingPsychological
             || isSavingTherapy
+            || isSavingDocument
           }
         >
           Volver a estudiantes
@@ -1547,6 +1661,75 @@ function StudentRecordPage({
               />
             </section>
           )}
+
+          <section
+            className="student-record-card"
+            aria-labelledby="documents-section-title"
+          >
+            <div
+              className={
+                'student-record-card__header '
+                + 'student-record-card__header--actions'
+              }
+            >
+              <div>
+                <h2 id="documents-section-title">
+                  Documentos
+                </h2>
+
+                <p>
+                  Carga de documentos asociados al expediente
+                  del estudiante.
+                </p>
+              </div>
+
+              {!isDocumentFormOpen && (
+                <button
+                  className="button button--primary"
+                  type="button"
+                  onClick={handleOpenDocumentUpload}
+                >
+                  Cargar documento
+                </button>
+              )}
+            </div>
+
+            {documentSuccess && (
+              <div
+                className="form-message form-message--success"
+                role="status"
+              >
+                {documentSuccess}
+              </div>
+            )}
+
+            {documentError
+              && !isDocumentFormOpen && (
+              <div
+                className="form-message form-message--error"
+                role="alert"
+              >
+                {documentError}
+              </div>
+            )}
+
+            {isDocumentFormOpen && (
+              <div className="student-record-card__content">
+                <h3 className="student-record-form-title">
+                  Cargar documento
+                </h3>
+
+                <StudentDocumentUploadForm
+                  key={`document-upload-${studentContext}`}
+                  context={studentContext}
+                  onSubmit={handleDocumentSubmit}
+                  onCancel={handleDocumentCancel}
+                  isSubmitting={isSavingDocument}
+                  error={documentError}
+                />
+              </div>
+            )}
+          </section>
 
         </>
       )}
