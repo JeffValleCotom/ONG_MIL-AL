@@ -15,6 +15,8 @@ import {
   getStudentRecord,
   updateStudent,
   uploadStudentDocument,
+  downloadStudentDocument,
+  getStudentDocuments,
 } from '../services/studentService'
 import StudentEditForm
   from '../components/StudentEditForm'
@@ -43,6 +45,8 @@ import StudentRecordAssignmentHistory
   from '../components/StudentRecordAssignmentHistory'
 import StudentDocumentUploadForm
   from '../components/StudentDocumentUploadForm'
+import StudentDocumentList
+  from '../components/StudentDocumentList'
 
 
 function formatDate(value) {
@@ -464,6 +468,26 @@ function StudentRecordPage({
     setDocumentSuccess,
   ] = useState('')
 
+  const [
+    documents,
+    setDocuments,
+  ] = useState([])
+
+  const [
+    isLoadingDocuments,
+    setIsLoadingDocuments,
+  ] = useState(true)
+
+  const [
+    documentQueryError,
+    setDocumentQueryError,
+  ] = useState('')
+
+  const [
+    downloadingDocumentId,
+    setDownloadingDocumentId,
+  ] = useState(null)
+
   useEffect(() => {
     let isMounted = true
 
@@ -500,6 +524,43 @@ function StudentRecordPage({
     }
   }, [studentId, studentContext])
 
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadDocuments() {
+      setIsLoadingDocuments(true)
+      setDocumentQueryError('')
+
+      try {
+        const data = await getStudentDocuments(
+          studentId,
+          studentContext
+        )
+
+        if (isMounted) {
+          setDocuments(data?.items ?? [])
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setDocuments([])
+          setDocumentQueryError(
+            getDocumentErrorMessage(loadError)
+          )
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingDocuments(false)
+        }
+      }
+    }
+
+    loadDocuments()
+
+    return () => {
+      isMounted = false
+    }
+  }, [studentId, studentContext])
+
   async function refreshRecord() {
     const data = await getStudentRecord(
       studentId,
@@ -507,6 +568,15 @@ function StudentRecordPage({
     )
 
     setRecord(data)
+  }
+
+  async function refreshDocuments() {
+    const data = await getStudentDocuments(
+      studentId,
+      studentContext
+    )
+
+    setDocuments(data?.items ?? [])
   }
 
   function handleGeneralEdit() {
@@ -1000,12 +1070,69 @@ function StudentRecordPage({
       setDocumentSuccess(
         'Documento cargado correctamente.'
       )
+
+      try {
+        await refreshDocuments()
+      } catch {
+        setDocumentQueryError(
+          'El documento fue cargado, pero no fue '
+          + 'posible actualizar el listado.'
+        )
+      }
+
     } catch (saveError) {
       setDocumentError(
         getDocumentErrorMessage(saveError)
       )
     } finally {
       setIsSavingDocument(false)
+    }
+  }
+
+  async function handleDocumentDownload(
+    documentItem
+  ) {
+    if (downloadingDocumentId !== null) {
+      return
+    }
+
+    setDownloadingDocumentId(
+      documentItem.id
+    )
+    setDocumentQueryError('')
+
+    try {
+      const blob = await downloadStudentDocument(
+        studentId,
+        documentItem.id,
+        studentContext
+      )
+
+      const objectUrl = URL.createObjectURL(blob)
+
+      const link = window.document.createElement(
+        'a'
+      )
+
+      link.href = objectUrl
+      link.download = documentItem.original_filename
+      link.style.display = 'none'
+
+      window.document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      window.setTimeout(() => {
+        URL.revokeObjectURL(objectUrl)
+      }, 0)
+    } catch (downloadError) {
+      setDocumentQueryError(
+        getDocumentErrorMessage(
+          downloadError
+        )
+      )
+    } finally {
+      setDownloadingDocumentId(null)
     }
   }
 
@@ -1678,8 +1805,8 @@ function StudentRecordPage({
                 </h2>
 
                 <p>
-                  Carga de documentos asociados al expediente
-                  del estudiante.
+                  Consulta, carga y descarga de documentos
+                  asociados al expediente del estudiante.
                 </p>
               </div>
 
@@ -1729,6 +1856,25 @@ function StudentRecordPage({
                 />
               </div>
             )}
+
+            {documentQueryError && (
+              <div
+                className="form-message form-message--error"
+                role="alert"
+              >
+                {documentQueryError}
+              </div>
+            )}
+
+            <StudentDocumentList
+              documents={documents}
+              isLoading={isLoadingDocuments}
+              onDownload={handleDocumentDownload}
+              downloadingId={
+                downloadingDocumentId
+              }
+            />
+
           </section>
 
         </>

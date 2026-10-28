@@ -427,6 +427,32 @@ class StudentDocumentUploadSerializer(
         return attrs
 
 
+class StudentDocumentSerializer(
+    serializers.ModelSerializer
+):
+    document_type_display = serializers.CharField(
+        source="get_document_type_display",
+        read_only=True,
+    )
+
+    class Meta:
+        model = StudentDocument
+        fields = [
+            "id",
+            "document_type",
+            "document_type_display",
+            "document_type_detail",
+            "original_filename",
+            "mime_type",
+            "size_bytes",
+            "description",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
 class StudentRecordGeneralSerializer(
     serializers.ModelSerializer
 ):

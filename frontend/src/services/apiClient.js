@@ -41,6 +41,7 @@ export async function apiRequest(
     method = 'GET',
     data,
     headers = {},
+    responseType = 'json',
     ...options
   } = {}
 ) {
@@ -79,6 +80,13 @@ export async function apiRequest(
     `${API_BASE_URL}${path}`,
     requestOptions
   )
+
+  if (
+    response.ok
+    && responseType === 'blob'
+  ) {
+    return response.blob()
+  }
 
   let responseData
 
