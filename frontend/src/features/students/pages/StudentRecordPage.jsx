@@ -1570,7 +1570,11 @@ function StudentRecordPage({
 
               <AcademicFollowUpList
                 followups={academicFollowUps}
-                onEdit={handleAcademicEdit}
+                onEdit={
+                  canManageAcademic
+                    ? handleAcademicEdit
+                    : undefined
+                }
               />
             </section>
           )}
