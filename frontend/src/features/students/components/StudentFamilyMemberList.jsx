@@ -28,6 +28,10 @@ function displayValue(value) {
 
 function StudentFamilyMemberList({
   familyMembers = [],
+  canManage = false,
+  onEdit,
+  onDeactivate,
+  deactivatingId = null,
 }) {
   if (familyMembers.length === 0) {
     return (
@@ -110,6 +114,33 @@ function StudentFamilyMemberList({
               <dd>{displayValue(member.address)}</dd>
             </div>
           </dl>
+
+          {canManage && (
+            <div className="student-family-member__actions">
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => onEdit?.(member)}
+                disabled={deactivatingId === member.id}
+              >
+                Editar
+              </button>
+
+              {member.is_active && (
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => onDeactivate?.(member)}
+                  disabled={deactivatingId === member.id}
+                >
+                  {deactivatingId === member.id
+                    ? 'Desactivando...'
+                    : 'Desactivar'}
+                </button>
+              )}
+            </div>
+          )}
+
         </article>
       ))}
     </div>

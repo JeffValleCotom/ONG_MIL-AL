@@ -244,6 +244,15 @@ class StudentFamilyMemberSerializer(
             if relationship_detail
             else ""
         )
+
+        if (
+            "relationship" in attrs
+            and relationship
+            != StudentFamilyMember.Relationship.OTRO
+            and "relationship_detail" not in attrs
+        ):
+            relationship_detail = ""
+
         attrs["relationship_detail"] = (
             relationship_detail
         )
@@ -280,6 +289,16 @@ class StudentFamilyMemberSerializer(
                 False,
             ),
         )
+
+        if (
+            self.instance is not None
+            and not self.instance.is_active
+            and is_primary_contact
+        ):
+            errors["is_primary_contact"] = (
+                "Un familiar inactivo no puede ser "
+                "contacto principal."
+            )
 
         if (
             student is not None

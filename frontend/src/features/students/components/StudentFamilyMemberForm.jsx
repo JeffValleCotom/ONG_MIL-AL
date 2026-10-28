@@ -36,25 +36,31 @@ const RELATIONSHIP_OPTIONS = [
 ]
 
 function StudentFamilyMemberForm({
+  initialData = null,
   onSubmit,
   onCancel,
   isSubmitting = false,
   error = '',
   success = '',
 }) {
+
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    relationship: '',
-    relationship_detail: '',
-    phone: '',
-    email: '',
-    address: '',
-    is_primary_contact: false,
+    first_name: initialData?.first_name ?? '',
+    last_name: initialData?.last_name ?? '',
+    relationship: initialData?.relationship ?? '',
+    relationship_detail:
+      initialData?.relationship_detail ?? '',
+    phone: initialData?.phone ?? '',
+    email: initialData?.email ?? '',
+    address: initialData?.address ?? '',
+    is_primary_contact:
+      initialData?.is_primary_contact ?? false,
   })
 
   const [validationError, setValidationError] =
     useState('')
+
+  const isEditing = Boolean(initialData)
 
   function handleChange(event) {
     const {
@@ -326,8 +332,16 @@ function StudentFamilyMemberForm({
             disabled={isSubmitting}
         >
             {isSubmitting
-            ? 'Registrando...'
-            : 'Registrar familiar'}
+            ? (
+              isEditing
+                ? 'Guardando...'
+                : 'Registrando...'
+            )
+            : (
+              isEditing
+                ? 'Guardar cambios'
+                : 'Registrar familiar'
+            )}
         </button>
 
         <button
