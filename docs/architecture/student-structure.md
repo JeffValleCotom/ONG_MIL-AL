@@ -193,6 +193,13 @@ Se implementará en HU-09 mediante entidades relacionadas con Student.
 
 Se implementarán en HU-10.
 
+El catálogo funcional de tipos documentales se define en
+`docs/architecture/student-document-types.md`.
+
+Los documentos se gestionarán mediante entidades independientes
+relacionadas con `Student`, sin incorporar archivos directamente en la
+entidad principal.
+
 ### Información académica
 
 Los datos de seguimiento académico pertenecerán a las funcionalidades
