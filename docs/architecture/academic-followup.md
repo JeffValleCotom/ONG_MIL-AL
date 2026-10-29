@@ -1316,3 +1316,360 @@ agregar cobertura de autorización view frente a manage
 ```
 
 Django continúa siendo la autoridad final de seguridad aunque la interfaz oculte las acciones no autorizadas.
+
+## 26. Validación de TASK-66 — Pruebas del seguimiento académico
+
+TASK-66 corresponde a la validación integral del seguimiento académico implementado durante HU-11.
+
+La estrategia aplicada no consistió en duplicar pruebas ya existentes, sino en auditar la cobertura acumulada de TASK-61 a TASK-65 e incorporar únicamente los escenarios de aceptación que todavía no estaban comprobados explícitamente.
+
+### Cobertura existente antes de TASK-66
+
+Antes de iniciar TASK-66, la API académica ya contaba con pruebas para:
+
+```text
+consulta de seguimientos por DOCENTE asignado
+aislamiento de seguimientos de estudiantes no asignados
+restricción de acceso a detalles no autorizados
+registro para estudiantes asignados
+rechazo de registro para estudiantes no asignados
+rechazo de registro para estudiantes inactivos
+rechazo de fechas futuras durante creación
+contexto académico obligatorio
+restricción de contexto para usuarios con múltiples roles
+restricción de acceso para RESPONSABLE_INSTITUCIONAL
+actualización autorizada mediante PATCH
+separación entre permisos de consulta y actualización
+inmutabilidad de student_id durante actualización
+DELETE no permitido
+aislamiento entre seguimientos creados por distintos DOCENTEs
+```
+
+También existía cobertura dentro del expediente integral para:
+
+```text
+capability manage_academic
+DOCENTE sin manage_academic_followups
+inclusión de la sección académica en contexto DOCENTE
+exclusión de la sección académica en contexto RESPONSABLE_INSTITUCIONAL
+exclusión de la sección académica en contexto psicológico
+```
+
+Por esta razón, TASK-66 no replica estos escenarios.
+
+### Casos de aceptación incorporados
+
+La auditoría identificó ocho grupos de validación que todavía no tenían una prueba explícita dentro del módulo académico.
+
+Se agregaron las siguientes pruebas de aceptación.
+
+#### Campos obligatorios no vacíos
+
+Se valida que:
+
+```text
+academic_period
+subject
+observations
+```
+
+rechacen valores compuestos únicamente por espacios.
+
+El comportamiento esperado es:
+
+```text
+HTTP 400 Bad Request
+```
+
+y ningún seguimiento debe persistirse.
+
+#### Límites máximos de longitud
+
+Se comprueba que los campos limitados por el serializer respeten sus máximos:
+
+```text
+academic_period -> 50 caracteres
+subject -> 120 caracteres
+```
+
+Valores superiores a estos límites deben producir:
+
+```text
+HTTP 400 Bad Request
+```
+
+sin crear registros.
+
+#### Filtro student inválido
+
+El parámetro de consulta:
+
+```text
+?student=
+```
+
+debe contener un identificador entero positivo.
+
+Se validan entradas como:
+
+```text
+abc
+0
+-1
+```
+
+y todas deben ser rechazadas con:
+
+```text
+HTTP 400 Bad Request
+```
+
+#### student_id inválido durante creación
+
+La creación de un seguimiento requiere un `student_id` válido.
+
+Se comprueban identificadores inválidos como:
+
+```text
+abc
+0
+-1
+```
+
+El endpoint debe responder:
+
+```text
+HTTP 400 Bad Request
+```
+
+y no debe persistir un seguimiento.
+
+#### Fecha futura durante actualización
+
+La regla:
+
+```text
+followup_date <= fecha actual
+```
+
+también debe mantenerse durante una solicitud `PATCH`.
+
+Se intenta modificar un seguimiento existente utilizando una fecha futura y se valida:
+
+```text
+HTTP 400 Bad Request
+```
+
+Además, después del rechazo, la fecha original permanece intacta.
+
+#### Revocación de asignación profesional
+
+El acceso académico depende de una asignación DOCENTE activa.
+
+La prueba:
+
+1. crea una asignación activa;
+2. registra un seguimiento;
+3. desactiva correctamente la asignación;
+4. establece `unassigned_at`;
+5. vuelve a consultar el seguimiento.
+
+La desactivación respeta el constraint de base de datos:
+
+```text
+student_assignment_status_dates_ck
+```
+
+que establece la correspondencia:
+
+```text
+is_active=True  -> unassigned_at IS NULL
+is_active=False -> unassigned_at IS NOT NULL
+```
+
+Después de revocar la asignación:
+
+```text
+GET lista   -> 200 OK con colección vacía
+GET detalle -> 404 Not Found
+```
+
+Esto confirma que una asignación histórica no mantiene acceso vigente al seguimiento académico.
+
+#### Permiso de consulta obligatorio
+
+Se comprueba explícitamente que pertenecer al rol DOCENTE no es suficiente para consultar seguimientos.
+
+Al retirar:
+
+```text
+view_academic_followups
+```
+
+del grupo DOCENTE, la consulta debe responder:
+
+```text
+HTTP 403 Forbidden
+```
+
+Esto confirma que la autorización depende tanto del contexto profesional como del permiso funcional.
+
+#### Protección de campos de auditoría
+
+Los campos:
+
+```text
+created_by
+updated_by
+```
+
+son controlados exclusivamente por el backend.
+
+La prueba intenta enviar identificadores de otro usuario durante la creación.
+
+La API crea el seguimiento, pero ignora los valores proporcionados por el cliente y conserva:
+
+```text
+created_by = usuario autenticado
+updated_by = usuario autenticado
+```
+
+De esta manera, el cliente no puede falsificar la autoría ni la última actualización del registro.
+
+### Corrección del escenario de asignación inactiva
+
+Durante la construcción de las pruebas se detectó que una asignación no puede cambiar únicamente:
+
+```text
+is_active = False
+```
+
+porque la base de datos protege la coherencia entre estado y fecha de desasignación mediante:
+
+```text
+student_assignment_status_dates_ck
+```
+
+El escenario de prueba fue ajustado para reproducir el mismo contrato utilizado por la aplicación:
+
+```text
+is_active = False
+unassigned_at = timezone.now()
+```
+
+No fue necesario modificar código productivo.
+
+El error inicial correspondía a una preparación inválida del fixture de prueba y no a un defecto del seguimiento académico.
+
+### Resultado de pruebas académicas
+
+Después de incorporar y corregir los escenarios de aceptación se ejecutó:
+
+```text
+apps.academic.tests.test_academic_followup_api
+```
+
+Resultado:
+
+```text
+Found 23 test(s).
+System check identified no issues (0 silenced).
+Ran 23 tests in 25.159s
+
+OK
+```
+
+### Validación integrada con expediente
+
+Posteriormente se ejecutaron conjuntamente:
+
+```text
+apps.academic.tests.test_academic_followup_api
+apps.students.tests.test_student_record_api
+```
+
+Resultado:
+
+```text
+Ran 48 tests in 51.459s
+
+OK
+```
+
+Esto confirma que las reglas de seguimiento académico continúan siendo compatibles con la integración del expediente estudiantil.
+
+### Regresión completa del backend
+
+Como cierre de HU-11 se ejecutó la suite completa del backend.
+
+Resultado:
+
+```text
+Ran 322 tests in 301.089s
+
+OK
+```
+
+No se detectaron regresiones en las historias implementadas anteriormente.
+
+### Validación de formato
+
+También se ejecutó:
+
+```text
+git diff --check
+```
+
+sin reportar errores.
+
+### Alcance de TASK-66
+
+TASK-66 modifica únicamente la cobertura automatizada del seguimiento académico.
+
+No se modifican:
+
+```text
+AcademicFollowUp
+migraciones
+estructura de base de datos
+AcademicFollowUpSerializer
+AcademicFollowUpViewSet
+rutas
+servicios frontend
+formularios frontend
+componentes frontend
+StudentRecordPage
+```
+
+Las ocho pruebas nuevas completan la cobertura de aceptación sin introducir implementaciones paralelas ni duplicar funcionalidades existentes.
+
+### Cierre de HU-11
+
+Con TASK-66 quedan validadas las tareas de HU-11:
+
+```text
+TASK-61 — Diseñar estructura del seguimiento académico
+TASK-62 — Crear estructura de base de datos académica
+TASK-63 — Implementar registro académico
+TASK-64 — Implementar consulta académica
+TASK-65 — Implementar actualización del seguimiento
+TASK-66 — Probar seguimiento académico
+```
+
+El seguimiento académico queda cubierto en:
+
+```text
+diseño
+persistencia
+registro
+consulta
+actualización
+autorización
+aislamiento por profesional
+validaciones de dominio
+auditoría
+integración con expediente
+pruebas de regresión
+```
+
+HU-11 queda técnicamente completa.
