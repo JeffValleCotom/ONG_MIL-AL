@@ -571,6 +571,9 @@ class StudentRecordCapabilitiesSerializer(
     manage_psychological = serializers.BooleanField(
         read_only=True,
     )
+    manage_therapy = serializers.BooleanField(
+        read_only=True,
+    )
 
 
 class StudentRecordSerializer(

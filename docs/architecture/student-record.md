@@ -278,14 +278,22 @@ Requerirá:
 
 Será accesible dentro del contexto `TERAPEUTA`.
 
-La información terapéutica deberá mantenerse separada de las notas psicológicas.
+Requerirá:
 
-TASK-40 deberá implementar permisos y estructuras que garanticen esta
-separación.
+- rol `TERAPEUTA`;
+- asignación activa como `TERAPEUTA`;
+- `view_therapy_followups` para consulta;
+- `manage_therapy_followups` para registro o modificación.
 
-Si las intervenciones existentes no permiten garantizar el aislamiento entre
-contenido psicológico y terapéutico, deberán incorporarse permisos funcionales
-específicos para seguimiento terapéutico.
+La información terapéutica se mantiene separada de las notas psicológicas.
+
+Para las acciones de registro y actualización, el expediente expone la capability:
+
+`manage_therapy`
+
+Esta capability es calculada por Django y es verdadera únicamente cuando el contexto es `TERAPEUTA` y el usuario posee `manage_therapy_followups`.
+
+El frontend utiliza esta capability para controlar la disponibilidad visual de las acciones de registrar y editar seguimientos terapéuticos. Django continúa siendo la autoridad final de autorización.
 
 ## 11. Matriz de visibilidad del expediente
 

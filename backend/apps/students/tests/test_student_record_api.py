@@ -828,6 +828,12 @@ class StudentRecordAPITests(APITestCase):
             status.HTTP_200_OK,
         )
 
+        self.assertTrue(
+            response.data["capabilities"][
+                "manage_therapy"
+            ]
+        )
+
         self.assertIn(
             "therapy",
             response.data["sections"],
@@ -857,6 +863,57 @@ class StudentRecordAPITests(APITestCase):
         self.assertEqual(
             followups[0]["id"],
             followup.id,
+        )
+
+    def test_therapist_without_manage_permission_has_no_manage_capability(
+        self,
+    ):
+        therapist = self.create_user_with_role(
+            username="therapy_record_view_only",
+            role_name="TERAPEUTA",
+        )
+
+        self.assign_student(
+            professional=therapist,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        therapy_group = Group.objects.get(
+            name="TERAPEUTA",
+        )
+
+        therapy_group.permissions.remove(
+            Permission.objects.get(
+                codename="manage_therapy_followups",
+            )
+        )
+
+        self.client.force_authenticate(
+            user=therapist,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "therapy",
+            response.data["sections"],
+        )
+
+        self.assertFalse(
+            response.data["capabilities"][
+                "manage_therapy"
+            ]
         )
 
     def test_multi_role_psychology_and_therapy_remain_isolated(

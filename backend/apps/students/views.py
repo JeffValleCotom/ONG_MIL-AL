@@ -834,11 +834,20 @@ class StudentViewSet(
             )
         )
 
+        can_manage_therapy = (
+            context == "TERAPEUTA"
+            and has_therapist_permission(
+                request.user,
+                "manage_therapy_followups",
+            )
+        )
+
         capabilities = {
             "update_general": can_manage_students,
             "manage_family": can_manage_students,
             "manage_academic": can_manage_academic,
             "manage_psychological": can_manage_psychological,
+            "manage_therapy": can_manage_therapy,
         }
 
         sections = {

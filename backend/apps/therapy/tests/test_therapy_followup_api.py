@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -392,6 +392,67 @@ class TherapyFollowUpAPITests(APITestCase):
             "Progreso terapéutico actualizado.",
         )
 
+    def test_view_permission_does_not_allow_update(self):
+        self.therapist_group.permissions.remove(
+            Permission.objects.get(
+                codename="manage_therapy_followups",
+            )
+        )
+
+        self.authenticate(self.therapist)
+
+        list_response = self.client.get(
+            self.therapy_context_url()
+        )
+
+        self.assertEqual(
+            list_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        returned_ids = {
+            item["id"]
+            for item in list_response.data
+        }
+
+        self.assertIn(
+            self.assigned_followup.id,
+            returned_ids,
+        )
+
+        original_progress_notes = (
+            self.assigned_followup.progress_notes
+        )
+
+        url = reverse(
+            "therapy-followup-detail",
+            kwargs={
+                "pk": self.assigned_followup.pk,
+            },
+        )
+
+        patch_response = self.client.patch(
+            f"{url}?context=TERAPEUTA",
+            {
+                "progress_notes": (
+                    "No debe permitirse esta actualización."
+                ),
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            patch_response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        self.assigned_followup.refresh_from_db()
+
+        self.assertEqual(
+            self.assigned_followup.progress_notes,
+            original_progress_notes,
+        )
+
     def test_patch_cannot_change_student(self):
         self.authenticate(self.therapist)
 
@@ -413,6 +474,59 @@ class TherapyFollowUpAPITests(APITestCase):
         self.assertEqual(
             response.status_code,
             status.HTTP_400_BAD_REQUEST,
+        )
+
+    def test_inactive_assignment_revokes_followup_access(
+        self,
+    ):
+        assignment = (
+            StudentProfessionalAssignment.objects.get(
+                student=self.assigned_student,
+                professional=self.therapist,
+                professional_role="TERAPEUTA",
+                is_active=True,
+            )
+        )
+
+        assignment.is_active = False
+        assignment.unassigned_at = timezone.now()
+        assignment.save(
+            update_fields=[
+                "is_active",
+                "unassigned_at",
+            ]
+        )
+
+        self.authenticate(self.therapist)
+
+        list_response = self.client.get(
+            self.therapy_context_url()
+        )
+
+        self.assertEqual(
+            list_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            list_response.data,
+            [],
+        )
+
+        url = reverse(
+            "therapy-followup-detail",
+            kwargs={
+                "pk": self.assigned_followup.pk,
+            },
+        )
+
+        detail_response = self.client.get(
+            f"{url}?context=TERAPEUTA"
+        )
+
+        self.assertEqual(
+            detail_response.status_code,
+            status.HTTP_404_NOT_FOUND,
         )
 
     def test_delete_is_not_allowed(self):

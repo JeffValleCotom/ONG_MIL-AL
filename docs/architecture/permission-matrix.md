@@ -52,6 +52,8 @@ Los roles definidos actualmente son:
 | `manage_academic_followups` | Registrar y actualizar seguimientos académicos |
 | `view_psychological_followups` | Consultar seguimientos psicológicos |
 | `manage_psychological_followups` | Registrar y actualizar seguimientos psicológicos |
+| `view_therapy_followups` | Consultar seguimientos terapéuticos |
+| `manage_therapy_followups` | Registrar y actualizar seguimientos terapéuticos |
 | `view_interventions` | Consultar intervenciones o atenciones interdisciplinarias |
 | `manage_interventions` | Registrar y actualizar intervenciones |
 | `view_reports` | Consultar reportes autorizados |
@@ -79,6 +81,8 @@ Leyenda:
 | `manage_academic_followups` | — | X | — | — | — |
 | `view_psychological_followups` | — | — | X | — | — |
 | `manage_psychological_followups` | — | — | X | — | — |
+| `view_therapy_followups` | — | — | — | X | — |
+| `manage_therapy_followups` | — | — | — | X | — |
 | `view_interventions` | — | — | X | X | — |
 | `manage_interventions` | — | — | X | X | — |
 | `view_reports` | — | X | X | X | X |
