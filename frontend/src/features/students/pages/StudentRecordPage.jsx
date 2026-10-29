@@ -1147,6 +1147,9 @@ function StudentRecordPage({
   const canManageAcademic = Boolean(
     capabilities.manage_academic
   )
+  const canManagePsychological = Boolean(
+    capabilities.manage_psychological
+  )
   const general = record?.sections?.general
   const family = record?.sections?.family
   const assignments =
@@ -1601,7 +1604,8 @@ function StudentRecordPage({
                   </p>
                 </div>
 
-                {general.is_active
+                {canManagePsychological
+                  && general.is_active
                   && !isPsychologicalFormOpen && (
                   <button
                     className="button button--primary"
@@ -1683,7 +1687,11 @@ function StudentRecordPage({
 
               <PsychologicalFollowUpList
                 followups={psychologicalFollowUps}
-                onEdit={handlePsychologicalEdit}
+                onEdit={
+                  canManagePsychological
+                    ? handlePsychologicalEdit
+                    : undefined
+                }
               />
             </section>
           )}

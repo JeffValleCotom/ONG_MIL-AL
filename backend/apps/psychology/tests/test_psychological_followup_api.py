@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -396,6 +396,67 @@ class PsychologicalFollowUpAPITests(APITestCase):
             "Observaciones actualizadas.",
         )
 
+    def test_view_permission_does_not_allow_update(self):
+        self.psychologist_group.permissions.remove(
+            Permission.objects.get(
+                codename="manage_psychological_followups",
+            )
+        )
+
+        self.authenticate(self.psychologist)
+
+        list_response = self.client.get(
+            self.psychological_context_url()
+        )
+
+        self.assertEqual(
+            list_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        returned_ids = {
+            item["id"]
+            for item in list_response.data
+        }
+
+        self.assertIn(
+            self.assigned_followup.id,
+            returned_ids,
+        )
+
+        original_observations = (
+            self.assigned_followup.observations
+        )
+
+        url = reverse(
+            "psychological-followup-detail",
+            kwargs={
+                "pk": self.assigned_followup.pk,
+            },
+        )
+
+        patch_response = self.client.patch(
+            f"{url}?context=PSICOLOGO",
+            {
+                "observations": (
+                    "No debe permitirse esta actualización."
+                ),
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            patch_response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        self.assigned_followup.refresh_from_db()
+
+        self.assertEqual(
+            self.assigned_followup.observations,
+            original_observations,
+        )
+
     def test_patch_cannot_change_student(self):
         self.authenticate(self.psychologist)
 
@@ -417,6 +478,59 @@ class PsychologicalFollowUpAPITests(APITestCase):
         self.assertEqual(
             response.status_code,
             status.HTTP_400_BAD_REQUEST,
+        )
+
+    def test_inactive_assignment_revokes_followup_access(
+        self,
+    ):
+        assignment = (
+            StudentProfessionalAssignment.objects.get(
+                student=self.assigned_student,
+                professional=self.psychologist,
+                professional_role="PSICOLOGO",
+                is_active=True,
+            )
+        )
+
+        assignment.is_active = False
+        assignment.unassigned_at = timezone.now()
+        assignment.save(
+            update_fields=[
+                "is_active",
+                "unassigned_at",
+            ]
+        )
+
+        self.authenticate(self.psychologist)
+
+        list_response = self.client.get(
+            self.psychological_context_url()
+        )
+
+        self.assertEqual(
+            list_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            list_response.data,
+            [],
+        )
+
+        url = reverse(
+            "psychological-followup-detail",
+            kwargs={
+                "pk": self.assigned_followup.pk,
+            },
+        )
+
+        detail_response = self.client.get(
+            f"{url}?context=PSICOLOGO"
+        )
+
+        self.assertEqual(
+            detail_response.status_code,
+            status.HTTP_404_NOT_FOUND,
         )
 
     def test_delete_is_not_allowed(self):
