@@ -862,3 +862,435 @@ class AcademicFollowUpAPITests(APITestCase):
             patch_response.status_code,
             status.HTTP_404_NOT_FOUND,
         )
+
+    def test_acceptance_required_text_fields_reject_blank_values(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_academic_required_fields",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            student=self.student_ana,
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        for field in (
+            "academic_period",
+            "subject",
+            "observations",
+        ):
+            with self.subTest(field=field):
+                payload = self.valid_payload(
+                    self.student_ana
+                )
+                payload[field] = "   "
+
+                response = self.client.post(
+                    (
+                        f"{self.list_url}"
+                        "?context=DOCENTE"
+                    ),
+                    payload,
+                    format="json",
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_400_BAD_REQUEST,
+                )
+
+                self.assertIn(
+                    field,
+                    response.data,
+                )
+
+        self.assertFalse(
+            AcademicFollowUp.objects.filter(
+                student=self.student_ana,
+            ).exists()
+        )
+
+    def test_acceptance_bounded_text_fields_enforce_max_length(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_academic_max_length",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            student=self.student_ana,
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        invalid_values = (
+            (
+                "academic_period",
+                "A" * 51,
+            ),
+            (
+                "subject",
+                "S" * 121,
+            ),
+        )
+
+        for field, value in invalid_values:
+            with self.subTest(field=field):
+                payload = self.valid_payload(
+                    self.student_ana
+                )
+                payload[field] = value
+
+                response = self.client.post(
+                    (
+                        f"{self.list_url}"
+                        "?context=DOCENTE"
+                    ),
+                    payload,
+                    format="json",
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_400_BAD_REQUEST,
+                )
+
+                self.assertIn(
+                    field,
+                    response.data,
+                )
+
+        self.assertFalse(
+            AcademicFollowUp.objects.filter(
+                student=self.student_ana,
+            ).exists()
+        )
+
+    def test_acceptance_invalid_student_filter_is_rejected(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_academic_invalid_filter",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            student=self.student_ana,
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        for student_id in (
+            "abc",
+            "0",
+            "-1",
+        ):
+            with self.subTest(student=student_id):
+                response = self.client.get(
+                    self.list_url,
+                    {
+                        "context": "DOCENTE",
+                        "student": student_id,
+                    },
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_400_BAD_REQUEST,
+                )
+
+                self.assertIn(
+                    "student",
+                    response.data,
+                )
+
+    def test_acceptance_invalid_student_id_is_rejected_on_create(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_academic_invalid_student",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            student=self.student_ana,
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        for student_id in (
+            "abc",
+            0,
+            -1,
+        ):
+            with self.subTest(student_id=student_id):
+                payload = self.valid_payload(
+                    self.student_ana
+                )
+                payload["student_id"] = student_id
+
+                response = self.client.post(
+                    (
+                        f"{self.list_url}"
+                        "?context=DOCENTE"
+                    ),
+                    payload,
+                    format="json",
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_400_BAD_REQUEST,
+                )
+
+                self.assertIn(
+                    "student_id",
+                    response.data,
+                )
+
+        self.assertFalse(
+            AcademicFollowUp.objects.filter(
+                student=self.student_ana,
+            ).exists()
+        )
+
+    def test_acceptance_future_date_is_rejected_on_update(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_academic_future_update",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            student=self.student_ana,
+        )
+
+        followup = self.create_followup(
+            student=self.student_ana,
+            author=docente,
+        )
+
+        original_date = followup.followup_date
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        detail_url = reverse(
+            "academic-followup-detail",
+            kwargs={
+                "pk": followup.pk,
+            },
+        )
+
+        response = self.client.patch(
+            f"{detail_url}?context=DOCENTE",
+            {
+                "followup_date": (
+                    timezone.localdate()
+                    + timedelta(days=1)
+                ).isoformat(),
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.assertIn(
+            "followup_date",
+            response.data,
+        )
+
+        followup.refresh_from_db()
+
+        self.assertEqual(
+            followup.followup_date,
+            original_date,
+        )
+
+    def test_acceptance_inactive_assignment_revokes_query_access(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_academic_revoked_assignment",
+            role_name="DOCENTE",
+        )
+
+        assignment = self.assign_student(
+            professional=docente,
+            student=self.student_ana,
+        )
+
+        followup = self.create_followup(
+            student=self.student_ana,
+            author=docente,
+        )
+
+        assignment.is_active = False
+        assignment.unassigned_at = timezone.now()
+        assignment.save(
+            update_fields=[
+                "is_active",
+                "unassigned_at",
+            ]
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        list_response = self.client.get(
+            self.list_url,
+            {
+                "context": "DOCENTE",
+                "student": self.student_ana.id,
+            },
+        )
+
+        self.assertEqual(
+            list_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            list_response.data,
+            [],
+        )
+
+        detail_url = reverse(
+            "academic-followup-detail",
+            kwargs={
+                "pk": followup.pk,
+            },
+        )
+
+        detail_response = self.client.get(
+            f"{detail_url}?context=DOCENTE"
+        )
+
+        self.assertEqual(
+            detail_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+    def test_acceptance_view_permission_is_required_for_query(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_academic_without_view",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            student=self.student_ana,
+        )
+
+        self.create_followup(
+            student=self.student_ana,
+            author=docente,
+        )
+
+        docente_group = Group.objects.get(
+            name="DOCENTE",
+        )
+
+        docente_group.permissions.remove(
+            Permission.objects.get(
+                codename="view_academic_followups",
+            )
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        response = self.client.get(
+            self.list_url,
+            {
+                "context": "DOCENTE",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+    def test_acceptance_audit_fields_cannot_be_spoofed_on_create(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="docente_academic_audit_owner",
+            role_name="DOCENTE",
+        )
+
+        other_user = self.create_user_with_role(
+            username="docente_academic_audit_spoof",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            student=self.student_ana,
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        payload = self.valid_payload(
+            self.student_ana
+        )
+
+        payload["created_by"] = other_user.id
+        payload["updated_by"] = other_user.id
+
+        response = self.client.post(
+            (
+                f"{self.list_url}"
+                "?context=DOCENTE"
+            ),
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_201_CREATED,
+        )
+
+        followup = AcademicFollowUp.objects.get(
+            pk=response.data["id"],
+        )
+
+        self.assertEqual(
+            followup.created_by,
+            docente,
+        )
+
+        self.assertEqual(
+            followup.updated_by,
+            docente,
+        )
