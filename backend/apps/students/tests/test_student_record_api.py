@@ -705,6 +705,12 @@ class StudentRecordAPITests(APITestCase):
             status.HTTP_200_OK,
         )
 
+        self.assertTrue(
+            response.data["capabilities"][
+                "manage_psychological"
+            ]
+        )
+
         self.assertIn(
             "psychological",
             response.data["sections"],
@@ -734,6 +740,57 @@ class StudentRecordAPITests(APITestCase):
         self.assertEqual(
             followups[0]["id"],
             followup.id,
+        )
+
+    def test_psychologist_without_manage_permission_has_no_manage_capability(
+        self,
+    ):
+        psychologist = self.create_user_with_role(
+            username="psych_record_view_only",
+            role_name="PSICOLOGO",
+        )
+
+        self.assign_student(
+            professional=psychologist,
+            professional_role="PSICOLOGO",
+            student=self.student_ana,
+        )
+
+        psychology_group = Group.objects.get(
+            name="PSICOLOGO",
+        )
+
+        psychology_group.permissions.remove(
+            Permission.objects.get(
+                codename="manage_psychological_followups",
+            )
+        )
+
+        self.client.force_authenticate(
+            user=psychologist,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "PSICOLOGO",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "psychological",
+            response.data["sections"],
+        )
+
+        self.assertFalse(
+            response.data["capabilities"][
+                "manage_psychological"
+            ]
         )
 
     def test_therapist_record_only_includes_therapy_section(

@@ -826,10 +826,19 @@ class StudentViewSet(
             )
         )
 
+        can_manage_psychological = (
+            context == "PSICOLOGO"
+            and has_psychologist_permission(
+                request.user,
+                "manage_psychological_followups",
+            )
+        )
+
         capabilities = {
             "update_general": can_manage_students,
             "manage_family": can_manage_students,
             "manage_academic": can_manage_academic,
+            "manage_psychological": can_manage_psychological,
         }
 
         sections = {
