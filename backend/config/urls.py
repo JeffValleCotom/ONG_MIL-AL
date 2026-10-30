@@ -26,4 +26,8 @@ urlpatterns = [
         "api/v1/",
         include("apps.therapy.urls"),
     ),
+    path(
+        "api/v1/",
+        include("apps.evaluations.urls"),
+    ),
 ]

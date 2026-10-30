@@ -10,20 +10,20 @@ from apps.users.permission_catalog import (
 
 class PermissionCatalogTests(TestCase):
 
-    def test_permission_catalog_contains_17_unique_permissions(self):
+    def test_permission_catalog_contains_19_unique_permissions(self):
         self.assertEqual(
             len(PLATFORM_PERMISSIONS),
-            17,
+            19,
         )
 
         self.assertEqual(
             len(PLATFORM_PERMISSION_CODENAMES),
-            17,
+            19,
         )
 
         self.assertEqual(
             len(set(PLATFORM_PERMISSION_CODENAMES)),
-            17,
+            19,
         )
 
         self.assertIn(

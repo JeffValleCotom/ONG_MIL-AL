@@ -18,6 +18,9 @@ from apps.psychology.serializers import (
 from apps.therapy.serializers import (
     TherapyRecordSectionSerializer,
 )
+from apps.evaluations.serializers import (
+    EvaluationRecordSectionSerializer,
+)
 
 User = get_user_model()
 
@@ -555,6 +558,11 @@ class StudentRecordSectionsSerializer(
         required=False,
     )
 
+    evaluations = EvaluationRecordSectionSerializer(
+        read_only=True,
+        required=False,
+    )
+
 
 class StudentRecordCapabilitiesSerializer(
     serializers.Serializer
@@ -572,6 +580,9 @@ class StudentRecordCapabilitiesSerializer(
         read_only=True,
     )
     manage_therapy = serializers.BooleanField(
+        read_only=True,
+    )
+    manage_evaluations = serializers.BooleanField(
         read_only=True,
     )
 

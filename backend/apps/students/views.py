@@ -38,6 +38,9 @@ from apps.psychology.access import (
 from apps.therapy.access import (
     has_therapist_permission,
 )
+from apps.evaluations.access import (
+    has_evaluation_permission,
+)
 from .access import has_responsible_permission
 from .document_validation import (
     DocumentValidationError,
@@ -842,12 +845,22 @@ class StudentViewSet(
             )
         )
 
+        can_manage_evaluations = (
+            context in PROFESSIONAL_STUDENT_CONTEXTS
+            and has_evaluation_permission(
+                request.user,
+                context,
+                "manage_evaluations",
+            )
+        )
+
         capabilities = {
             "update_general": can_manage_students,
             "manage_family": can_manage_students,
             "manage_academic": can_manage_academic,
             "manage_psychological": can_manage_psychological,
             "manage_therapy": can_manage_therapy,
+            "manage_evaluations": can_manage_evaluations,
         }
 
         sections = {
@@ -936,6 +949,27 @@ class StudentViewSet(
                     student.therapy_followups
                     .filter(
                         created_by=request.user,
+                    )
+                    .select_related(
+                        "created_by",
+                        "updated_by",
+                    )
+                    .all()
+                ),
+            }
+        if (
+            context in PROFESSIONAL_STUDENT_CONTEXTS
+            and has_evaluation_permission(
+                request.user,
+                context,
+                "view_evaluations",
+            )
+        ):
+            sections["evaluations"] = {
+                "items": (
+                    student.evaluations
+                    .filter(
+                        professional_role=context,
                     )
                     .select_related(
                         "created_by",

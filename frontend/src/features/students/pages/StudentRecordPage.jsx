@@ -47,6 +47,14 @@ import StudentDocumentUploadForm
   from '../components/StudentDocumentUploadForm'
 import StudentDocumentList
   from '../components/StudentDocumentList'
+import EvaluationForm
+  from '../../evaluations/components/EvaluationForm'
+import EvaluationList
+  from '../../evaluations/components/EvaluationList'
+import {
+  createEvaluation,
+  updateEvaluation,
+} from '../../evaluations/services/evaluationService'
 
 
 function formatDate(value) {
@@ -222,6 +230,51 @@ function getTherapyErrorMessage(error) {
   return (
     error?.message
     || 'No fue posible guardar el seguimiento terapéutico.'
+  )
+}
+
+function getEvaluationErrorMessage(error) {
+  const data = error?.data
+
+  if (!data) {
+    return (
+      error?.message
+      || 'No fue posible guardar la evaluación.'
+    )
+  }
+
+  const fieldOrder = [
+    'student_id',
+    'evaluation_date',
+    'evaluation_type',
+    'results',
+    'observations',
+    'professional_role',
+    'context',
+    'detail',
+  ]
+
+  for (const field of fieldOrder) {
+    const value = data[field]
+
+    if (
+      Array.isArray(value)
+      && value.length > 0
+    ) {
+      return value[0]
+    }
+
+    if (
+      typeof value === 'string'
+      && value
+    ) {
+      return value
+    }
+  }
+
+  return (
+    error?.message
+    || 'No fue posible guardar la evaluación.'
   )
 }
 
@@ -427,6 +480,31 @@ function StudentRecordPage({
     isTherapyFormOpen,
     setIsTherapyFormOpen,
   ] = useState(false)
+
+  const [
+    isEvaluationFormOpen,
+    setIsEvaluationFormOpen,
+  ] = useState(false)
+
+  const [
+    editingEvaluation,
+    setEditingEvaluation,
+  ] = useState(null)
+
+  const [
+    isSavingEvaluation,
+    setIsSavingEvaluation,
+  ] = useState(false)
+
+  const [
+    evaluationError,
+    setEvaluationError,
+  ] = useState('')
+
+  const [
+    evaluationSuccess,
+    setEvaluationSuccess,
+  ] = useState('')
 
   const [
     editingTherapyFollowUp,
@@ -1033,6 +1111,86 @@ function StudentRecordPage({
     }
   }
 
+  function handleNewEvaluation() {
+    setEditingEvaluation(null)
+    setEvaluationError('')
+    setEvaluationSuccess('')
+    setIsEvaluationFormOpen(true)
+  }
+
+  function handleEvaluationEdit(evaluation) {
+    setEditingEvaluation(evaluation)
+    setEvaluationError('')
+    setEvaluationSuccess('')
+    setIsEvaluationFormOpen(true)
+  }
+
+  function handleEvaluationCancel() {
+    if (isSavingEvaluation) {
+      return
+    }
+
+    setEditingEvaluation(null)
+    setEvaluationError('')
+    setIsEvaluationFormOpen(false)
+  }
+
+  async function handleEvaluationSubmit(
+    evaluationData
+  ) {
+    if (isSavingEvaluation) {
+      return
+    }
+
+    const isEditing = Boolean(
+      editingEvaluation
+    )
+
+    setIsSavingEvaluation(true)
+    setEvaluationError('')
+    setEvaluationSuccess('')
+
+    try {
+      if (isEditing) {
+        await updateEvaluation({
+          evaluationId: editingEvaluation.id,
+          context: studentContext,
+          evaluationData,
+        })
+      } else {
+        await createEvaluation({
+          studentId,
+          context: studentContext,
+          evaluationData,
+        })
+      }
+
+      setEditingEvaluation(null)
+      setIsEvaluationFormOpen(false)
+
+      setEvaluationSuccess(
+        isEditing
+          ? 'Evaluación actualizada correctamente.'
+          : 'Evaluación registrada correctamente.'
+      )
+
+      try {
+        await refreshRecord()
+      } catch {
+        setEvaluationError(
+          'La evaluación fue guardada, pero no fue '
+          + 'posible actualizar la vista del expediente.'
+        )
+      }
+    } catch (saveError) {
+      setEvaluationError(
+        getEvaluationErrorMessage(saveError)
+      )
+    } finally {
+      setIsSavingEvaluation(false)
+    }
+  }
+
   function handleOpenDocumentUpload() {
     setDocumentError('')
     setDocumentSuccess('')
@@ -1153,6 +1311,9 @@ function StudentRecordPage({
   const canManageTherapy = Boolean(
     capabilities.manage_therapy
   )
+  const canManageEvaluations = Boolean(
+    capabilities.manage_evaluations
+  )
   const general = record?.sections?.general
   const family = record?.sections?.family
   const assignments =
@@ -1162,6 +1323,8 @@ function StudentRecordPage({
     record?.sections?.psychological
   const therapy =
     record?.sections?.therapy
+  const evaluationSection =
+    record?.sections?.evaluations
 
   const assignmentItems =
     assignments?.items ?? []
@@ -1174,6 +1337,8 @@ function StudentRecordPage({
     psychological?.followups ?? []
   const therapyFollowUps =
     therapy?.followups ?? []
+  const evaluationItems =
+    evaluationSection?.items ?? []
 
   return (
     <main className="student-record-page">
@@ -1901,6 +2066,93 @@ function StudentRecordPage({
 
           </section>
 
+        {evaluationSection && (
+          <section
+            className="student-record-card"
+            aria-labelledby="evaluations-section-title"
+          >
+            <div
+              className={
+                'student-record-card__header '
+                + 'student-record-card__header--actions'
+              }
+            >
+              <div>
+                <h2 id="evaluations-section-title">
+                  Evaluaciones
+                </h2>
+
+                <p>
+                  Resultados y observaciones de las evaluaciones
+                  realizadas al estudiante.
+                </p>
+              </div>
+
+              {canManageEvaluations
+                && general.is_active
+                && !isEvaluationFormOpen && (
+                <button
+                  className="button button--primary"
+                  type="button"
+                  onClick={handleNewEvaluation}
+                >
+                  Registrar evaluación
+                </button>
+              )}
+            </div>
+
+            {evaluationSuccess && (
+              <div
+                className="form-message form-message--success"
+                role="status"
+              >
+                {evaluationSuccess}
+              </div>
+            )}
+
+            {evaluationError
+              && !isEvaluationFormOpen && (
+              <div
+                className="form-message form-message--error"
+                role="alert"
+              >
+                {evaluationError}
+              </div>
+            )}
+
+            {isEvaluationFormOpen && (
+              <div className="student-record-card__content">
+                <h3 className="student-record-form-title">
+                  {editingEvaluation
+                    ? 'Editar evaluación'
+                    : 'Registrar evaluación'}
+                </h3>
+
+                <EvaluationForm
+                  key={
+                    editingEvaluation
+                      ? `edit-${editingEvaluation.id}`
+                      : 'new'
+                  }
+                  initialEvaluation={editingEvaluation}
+                  onSubmit={handleEvaluationSubmit}
+                  onCancel={handleEvaluationCancel}
+                  isSubmitting={isSavingEvaluation}
+                  error={evaluationError}
+                />
+              </div>
+            )}
+
+            <EvaluationList
+              evaluations={evaluationItems}
+              onEdit={
+                canManageEvaluations
+                  ? handleEvaluationEdit
+                  : undefined
+              }
+            />
+          </section>
+        )}
         </>
       )}
     </main>
