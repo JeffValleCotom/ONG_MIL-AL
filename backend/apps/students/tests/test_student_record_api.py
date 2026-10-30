@@ -6,6 +6,7 @@ from rest_framework.test import APITestCase
 from apps.academic.models import AcademicFollowUp
 from apps.psychology.models import PsychologicalFollowUp
 from apps.therapy.models import TherapyFollowUp
+from apps.evaluations.models import Evaluation
 from apps.students.models import (
     Student,
     StudentProfessionalAssignment,
@@ -913,6 +914,135 @@ class StudentRecordAPITests(APITestCase):
         self.assertFalse(
             response.data["capabilities"][
                 "manage_therapy"
+            ]
+        )
+
+    def test_therapist_record_includes_evaluation_history(
+        self,
+    ):
+        therapist = self.create_user_with_role(
+            username="therapist_evaluation_record",
+            role_name="TERAPEUTA",
+        )
+
+        previous_therapist = self.create_user_with_role(
+            username="previous_therapist_evaluation_record",
+            role_name="TERAPEUTA",
+        )
+
+        self.assign_student(
+            professional=therapist,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        evaluation = Evaluation.objects.create(
+            student=self.student_ana,
+            evaluation_date="2026-02-10",
+            evaluation_type="Evaluacion funcional",
+            results="Resultado historico disponible.",
+            observations="Seguimiento requerido.",
+            professional_role="TERAPEUTA",
+            created_by=previous_therapist,
+            updated_by=previous_therapist,
+        )
+
+        self.client.force_authenticate(
+            user=therapist,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertTrue(
+            response.data["capabilities"][
+                "manage_evaluations"
+            ]
+        )
+
+        self.assertIn(
+            "evaluations",
+            response.data["sections"],
+        )
+
+        evaluations = (
+            response.data["sections"]
+            ["evaluations"]
+            ["items"]
+        )
+
+        self.assertEqual(
+            len(evaluations),
+            1,
+        )
+        self.assertEqual(
+            evaluations[0]["id"],
+            evaluation.id,
+        )
+        self.assertEqual(
+            evaluations[0]["professional_role"],
+            "TERAPEUTA",
+        )
+
+    def test_therapist_without_manage_evaluations_has_no_manage_capability(
+        self,
+    ):
+        therapist = self.create_user_with_role(
+            username="therapist_evaluation_view_only",
+            role_name="TERAPEUTA",
+        )
+
+        self.assign_student(
+            professional=therapist,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        therapist_group = Group.objects.get(
+            name="TERAPEUTA",
+        )
+
+        therapist_group.permissions.remove(
+            Permission.objects.get(
+                content_type__app_label="users",
+                content_type__model="user",
+                codename="manage_evaluations",
+            )
+        )
+
+        self.client.force_authenticate(
+            user=therapist,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertIn(
+            "evaluations",
+            response.data["sections"],
+        )
+
+        self.assertFalse(
+            response.data["capabilities"][
+                "manage_evaluations"
             ]
         )
 

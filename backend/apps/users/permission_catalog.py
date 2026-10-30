@@ -40,6 +40,14 @@ PLATFORM_PERMISSIONS = (
         "Puede administrar seguimientos psicológicos",
     ),
     (
+        "view_evaluations",
+        "Puede consultar evaluaciones",
+    ),
+    (
+        "manage_evaluations",
+        "Puede administrar evaluaciones",
+    ),
+    (
         "view_interventions",
         "Puede consultar intervenciones",
     ),

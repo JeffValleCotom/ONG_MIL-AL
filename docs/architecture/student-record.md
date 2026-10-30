@@ -47,6 +47,7 @@ Student
 |-- información académica
 |-- información psicológica
 |-- información terapéutica / intervenciones
+|-- evaluaciones estructuradas
 |-- metadatos y trazabilidad
 
 No se creará inicialmente una tabla `StudentRecord` únicamente para representar
@@ -295,6 +296,47 @@ Esta capability es calculada por Django y es verdadera únicamente cuando el con
 
 El frontend utiliza esta capability para controlar la disponibilidad visual de las acciones de registrar y editar seguimientos terapéuticos. Django continúa siendo la autoridad final de autorización.
 
+### Evaluaciones
+
+Las evaluaciones estructuradas podrán ser utilizadas dentro de los contextos
+profesionales:
+
+- `DOCENTE`;
+- `PSICOLOGO`;
+- `TERAPEUTA`.
+
+Para consultar evaluaciones deberán cumplirse simultáneamente:
+
+- rol correspondiente al contexto profesional solicitado;
+- asignación activa con el estudiante bajo ese mismo contexto;
+- permiso `view_evaluations`.
+
+Para registrar o actualizar evaluaciones se requerirá adicionalmente:
+
+- permiso `manage_evaluations`.
+
+Cada evaluación conserva el contexto profesional en `professional_role`, además
+de los usuarios responsables de creación y última actualización.
+
+Las evaluaciones permanecen aisladas entre contextos profesionales. Una
+evaluación registrada en contexto `PSICOLOGO`, por ejemplo, no será expuesta
+desde el contexto `TERAPEUTA` o `DOCENTE`.
+
+Dentro de un mismo contexto profesional, un profesional actualmente asignado al
+estudiante podrá consultar evaluaciones históricas registradas previamente por
+otro profesional del mismo contexto. Esto permite conservar continuidad del
+seguimiento sin perder la trazabilidad del autor original.
+
+Para las acciones de registro y actualización, el expediente expone la
+capability:
+
+`manage_evaluations`
+
+Esta capability es calculada por Django según el contexto profesional actual y
+el permiso `manage_evaluations`. React la utiliza únicamente para controlar la
+disponibilidad visual de las acciones; Django continúa siendo la autoridad final
+de autorización.
+
 ## 11. Matriz de visibilidad del expediente
 
 | Información | Administrador | Docente asignado | Psicólogo asignado | Terapeuta asignado | Responsable institucional |
@@ -303,6 +345,7 @@ El frontend utiliza esta capability para controlar la disponibilidad visual de l
 | Información académica | No | Sí | No | No | No |
 | Información psicológica | No | No | Sí | No | No |
 | Información terapéutica | No | No | No | Sí | No |
+| Evaluaciones del contexto profesional | No | Sí | Sí | Sí | No |
 | Gestión de asignaciones | No | No | No | No | Sí |
 
 La columna "asignado" implica que debe existir una asignación activa bajo el rol
