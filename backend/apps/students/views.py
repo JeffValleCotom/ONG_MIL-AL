@@ -16,6 +16,7 @@ from apps.users.permissions import HasPlatformPermission
 from .models import (
     Student,
     StudentDocument,
+    StudentIntervention,
     StudentProfessionalAssignment,
 )
 from .serializers import (
@@ -26,6 +27,7 @@ from .serializers import (
     StudentFamilyMemberSerializer,
     StudentDocumentSerializer,
     StudentDocumentUploadSerializer,
+    StudentInterventionSerializer,
 )
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
@@ -113,6 +115,15 @@ class StudentViewSet(
                 return "view_students"
 
             return "manage_students"
+
+        if self.action == "interventions":
+            if self.request.method == "GET":
+                return "view_interventions"
+
+            return "manage_interventions"
+
+        if self.action == "intervention_detail":
+            return "manage_interventions"
 
         return self.required_permission_map.get(
             self.action
@@ -804,6 +815,158 @@ class StudentViewSet(
         )
 
         return response
+
+    def require_intervention_permission(
+        self,
+        context,
+        codename,
+    ):
+        if context == "PSICOLOGO":
+            allowed = has_psychologist_permission(
+                self.request.user,
+                codename,
+            )
+
+        elif context == "TERAPEUTA":
+            allowed = has_therapist_permission(
+                self.request.user,
+                codename,
+            )
+
+        else:
+            allowed = False
+
+        if not allowed:
+            raise exceptions.PermissionDenied(
+                "No tiene permiso para gestionar "
+                "intervenciones en el contexto seleccionado."
+            )
+
+    @action(
+        detail=True,
+        methods=["get", "post"],
+        url_path="interventions",
+    )
+    def interventions(self, request, pk=None):
+        student = self.get_object()
+        context = self.get_student_access_context()
+
+        if request.method == "GET":
+            self.require_intervention_permission(
+                context,
+                "view_interventions",
+            )
+
+            interventions = (
+                student.interventions
+                .filter(
+                    created_by=request.user,
+                    professional_role=context,
+                )
+                .select_related(
+                    "created_by",
+                    "updated_by",
+                )
+                .all()
+            )
+
+            serializer = StudentInterventionSerializer(
+                interventions,
+                many=True,
+            )
+
+            return Response(
+                {
+                    "items": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        self.require_intervention_permission(
+            context,
+            "manage_interventions",
+        )
+
+        if not student.is_active:
+            raise serializers.ValidationError(
+                {
+                    "student": (
+                        "No se puede registrar una intervención "
+                        "para un estudiante inactivo."
+                    )
+                }
+            )
+
+        serializer = StudentInterventionSerializer(
+            data=request.data,
+            context=self.get_serializer_context(),
+        )
+
+        serializer.is_valid(
+            raise_exception=True,
+        )
+
+        serializer.save(
+            student=student,
+            professional_role=context,
+            created_by=request.user,
+            updated_by=request.user,
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path=(
+            r"interventions/"
+            r"(?P<intervention_id>\d+)"
+        ),
+    )
+    def intervention_detail(
+        self,
+        request,
+        pk=None,
+        intervention_id=None,
+    ):
+        student = self.get_object()
+        context = self.get_student_access_context()
+
+        self.require_intervention_permission(
+            context,
+            "manage_interventions",
+        )
+
+        intervention = get_object_or_404(
+            student.interventions.filter(
+                created_by=request.user,
+                professional_role=context,
+            ),
+            pk=intervention_id,
+        )
+
+        serializer = StudentInterventionSerializer(
+            intervention,
+            data=request.data,
+            partial=True,
+            context=self.get_serializer_context(),
+        )
+
+        serializer.is_valid(
+            raise_exception=True,
+        )
+
+        serializer.save(
+            updated_by=request.user,
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
+        )
 
     @action(
         detail=True,

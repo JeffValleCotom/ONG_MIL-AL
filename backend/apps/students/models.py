@@ -415,3 +415,70 @@ class StudentDocument(models.Model):
             f"{self.document_type} - "
             f"{self.original_filename}"
         )
+
+class StudentIntervention(models.Model):
+    class ProfessionalRole(models.TextChoices):
+        PSICOLOGO = "PSICOLOGO", "Psicólogo"
+        TERAPEUTA = "TERAPEUTA", "Terapeuta"
+
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.PROTECT,
+        related_name="interventions",
+    )
+
+    intervention_date = models.DateField()
+
+    professional_role = models.CharField(
+        max_length=20,
+        choices=ProfessionalRole.choices,
+    )
+
+    objectives = models.TextField()
+
+    observations = models.TextField()
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="student_interventions_created",
+    )
+
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="student_interventions_updated",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = [
+            "-intervention_date",
+            "-created_at",
+            "-id",
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "student",
+                    "professional_role",
+                    "intervention_date",
+                ],
+                name="interv_student_role_date_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.student.institutional_code} - "
+            f"{self.professional_role} - "
+            f"{self.intervention_date}"
+        )
