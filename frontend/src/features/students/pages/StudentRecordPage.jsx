@@ -57,6 +57,8 @@ import {
 } from '../../evaluations/services/evaluationService'
 import StudentHistoryTimeline
   from '../components/StudentHistoryTimeline'
+import StudentEvolutionPanel
+  from '../components/StudentEvolutionPanel'
 
 
 function formatDate(value) {
@@ -1328,6 +1330,7 @@ function StudentRecordPage({
   const evaluationSection =
     record?.sections?.evaluations
   const history = record?.sections?.history
+  const evolution = record?.sections?.evolution
 
   const assignmentItems =
     assignments?.items ?? []
@@ -2180,6 +2183,30 @@ function StudentRecordPage({
 
             <StudentHistoryTimeline
               items={historyItems}
+            />
+          </section>
+        )}
+
+        {evolution && (
+          <section
+            className="student-record-card"
+            aria-labelledby="evolution-section-title"
+          >
+            <div className="student-record-card__header">
+              <div>
+                <h2 id="evolution-section-title">
+                  Evolución y progreso
+                </h2>
+
+                <p>
+                  Compara la actividad y la evidencia registrada
+                  durante el proceso de seguimiento del estudiante.
+                </p>
+              </div>
+            </div>
+
+            <StudentEvolutionPanel
+              evolution={evolution}
             />
           </section>
         )}
