@@ -337,6 +337,47 @@ el permiso `manage_evaluations`. React la utiliza únicamente para controlar la
 disponibilidad visual de las acciones; Django continúa siendo la autoridad final
 de autorización.
 
+### Historial integral de seguimiento
+
+HU-15 incorpora una vista cronológica de solo lectura dentro del expediente
+individual del estudiante.
+
+El historial no constituye una entidad persistente adicional y no duplica los
+registros existentes. Se construye dinámicamente a partir de las fuentes
+autorizadas del expediente:
+
+- seguimientos académicos;
+- seguimientos psicológicos;
+- seguimientos terapéuticos;
+- evaluaciones estructuradas.
+
+Cada elemento del historial conserva:
+
+- el identificador del registro de origen;
+- el estudiante relacionado;
+- el tipo de registro;
+- el área profesional;
+- la fecha del registro;
+- la información propia del dominio;
+- los usuarios responsables de creación y última actualización;
+- la trazabilidad temporal del registro original.
+
+La consulta se presenta en orden cronológico descendente, mostrando primero los
+registros más recientes.
+
+El historial respeta el contexto profesional solicitado y los permisos de cada
+fuente. Un usuario únicamente recibe los registros pertenecientes a las áreas
+que puede consultar dentro de su contexto autorizado.
+
+La existencia del historial no concede permisos adicionales ni permite modificar
+los registros desde esta vista. Las operaciones de actualización continúan
+realizándose exclusivamente mediante los módulos funcionales correspondientes.
+
+Un profesional actualmente asignado al estudiante puede consultar registros
+históricos de su mismo contexto profesional aunque hayan sido creados por otro
+profesional previamente asignado. Esto permite continuidad del seguimiento sin
+perder la trazabilidad del autor original.
+
 ## 11. Matriz de visibilidad del expediente
 
 | Información | Administrador | Docente asignado | Psicólogo asignado | Terapeuta asignado | Responsable institucional |

@@ -55,6 +55,8 @@ import {
   createEvaluation,
   updateEvaluation,
 } from '../../evaluations/services/evaluationService'
+import StudentHistoryTimeline
+  from '../components/StudentHistoryTimeline'
 
 
 function formatDate(value) {
@@ -1325,6 +1327,7 @@ function StudentRecordPage({
     record?.sections?.therapy
   const evaluationSection =
     record?.sections?.evaluations
+  const history = record?.sections?.history
 
   const assignmentItems =
     assignments?.items ?? []
@@ -1339,6 +1342,8 @@ function StudentRecordPage({
     therapy?.followups ?? []
   const evaluationItems =
     evaluationSection?.items ?? []
+  const historyItems =
+  history?.items ?? []
 
   return (
     <main className="student-record-page">
@@ -2153,6 +2158,32 @@ function StudentRecordPage({
             />
           </section>
         )}
+
+        {history && (
+          <section
+            className="student-record-card"
+            aria-labelledby="history-section-title"
+          >
+            <div className="student-record-card__header">
+              <div>
+                <h2 id="history-section-title">
+                  Historial integral
+                </h2>
+
+                <p>
+                  Consulta cronológica de seguimientos y
+                  evaluaciones disponibles dentro de tu área
+                  profesional.
+                </p>
+              </div>
+            </div>
+
+            <StudentHistoryTimeline
+              items={historyItems}
+            />
+          </section>
+        )}
+
         </>
       )}
     </main>

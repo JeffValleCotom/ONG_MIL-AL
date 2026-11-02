@@ -1771,3 +1771,588 @@ class StudentRecordAPITests(APITestCase):
         self.assertFalse(
             response.data["capabilities"]["manage_family"]
         )
+
+    def test_history_integrates_records_by_professional_context(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="history_docente",
+            role_name="DOCENTE",
+        )
+        psychologist = self.create_user_with_role(
+            username="history_psychologist",
+            role_name="PSICOLOGO",
+        )
+        therapist = self.create_user_with_role(
+            username="history_therapist",
+            role_name="TERAPEUTA",
+        )
+
+        for professional, role in (
+            (docente, "DOCENTE"),
+            (psychologist, "PSICOLOGO"),
+            (therapist, "TERAPEUTA"),
+        ):
+            self.assign_student(
+                professional=professional,
+                professional_role=role,
+                student=self.student_ana,
+            )
+
+        academic = AcademicFollowUp.objects.create(
+            student=self.student_ana,
+            followup_date="2026-01-10",
+            academic_period="2026",
+            subject="Matemática",
+            observations="Avance académico.",
+            created_by=docente,
+            updated_by=docente,
+        )
+
+        academic_evaluation = Evaluation.objects.create(
+            student=self.student_ana,
+            evaluation_date="2026-01-20",
+            evaluation_type="Evaluación académica",
+            results="Resultado académico.",
+            observations="Observación académica.",
+            professional_role="DOCENTE",
+            created_by=docente,
+            updated_by=docente,
+        )
+
+        psychological = (
+            PsychologicalFollowUp.objects.create(
+                student=self.student_ana,
+                followup_date="2026-02-10",
+                reason="Seguimiento emocional",
+                observations="Evolución favorable.",
+                created_by=psychologist,
+                updated_by=psychologist,
+            )
+        )
+
+        psychological_evaluation = (
+            Evaluation.objects.create(
+                student=self.student_ana,
+                evaluation_date="2026-02-20",
+                evaluation_type="Evaluación psicológica",
+                results="Resultado psicológico.",
+                observations="Observación psicológica.",
+                professional_role="PSICOLOGO",
+                created_by=psychologist,
+                updated_by=psychologist,
+            )
+        )
+
+        therapy = TherapyFollowUp.objects.create(
+            student=self.student_ana,
+            followup_date="2026-03-10",
+            therapy_area="Terapia ocupacional",
+            objectives="Fortalecer autonomía.",
+            progress_notes="Progreso favorable.",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        therapy_evaluation = Evaluation.objects.create(
+            student=self.student_ana,
+            evaluation_date="2026-03-20",
+            evaluation_type="Evaluación funcional",
+            results="Resultado terapéutico.",
+            observations="Observación terapéutica.",
+            professional_role="TERAPEUTA",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        scenarios = (
+            (
+                docente,
+                "DOCENTE",
+                academic_evaluation,
+                academic,
+                "ACADEMICA",
+                "ACADEMIC_FOLLOWUP",
+            ),
+            (
+                psychologist,
+                "PSICOLOGO",
+                psychological_evaluation,
+                psychological,
+                "PSICOLOGICA",
+                "PSYCHOLOGICAL_FOLLOWUP",
+            ),
+            (
+                therapist,
+                "TERAPEUTA",
+                therapy_evaluation,
+                therapy,
+                "TERAPEUTICA",
+                "THERAPY_FOLLOWUP",
+            ),
+        )
+
+        for (
+            user,
+            context,
+            evaluation,
+            followup,
+            area,
+            followup_type,
+        ) in scenarios:
+            with self.subTest(context=context):
+                self.client.force_authenticate(user=user)
+
+                response = self.client.get(
+                    self.record_url(self.student_ana),
+                    {
+                        "context": context,
+                    },
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_200_OK,
+                )
+
+                self.assertIn(
+                    "history",
+                    response.data["sections"],
+                )
+
+                items = (
+                    response.data["sections"]
+                    ["history"]
+                    ["items"]
+                )
+
+                self.assertEqual(
+                    len(items),
+                    2,
+                )
+
+                self.assertEqual(
+                    items[0]["record_type"],
+                    "EVALUATION",
+                )
+                self.assertEqual(
+                    items[0]["record_id"],
+                    evaluation.id,
+                )
+                self.assertEqual(
+                    items[0]["area"],
+                    area,
+                )
+
+                self.assertEqual(
+                    items[1]["record_type"],
+                    followup_type,
+                )
+                self.assertEqual(
+                    items[1]["record_id"],
+                    followup.id,
+                )
+                self.assertEqual(
+                    items[1]["area"],
+                    area,
+                )
+
+                self.assertTrue(
+                    all(
+                        item["student_id"]
+                        == self.student_ana.id
+                        for item in items
+                    )
+                )
+
+    def test_history_includes_previous_professional_records(
+        self,
+    ):
+        current_therapist = self.create_user_with_role(
+            username="history_current_therapist",
+            role_name="TERAPEUTA",
+        )
+
+        previous_therapist = self.create_user_with_role(
+            username="history_previous_therapist",
+            role_name="TERAPEUTA",
+        )
+
+        self.assign_student(
+            professional=current_therapist,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        previous_followup = (
+            TherapyFollowUp.objects.create(
+                student=self.student_ana,
+                followup_date="2025-12-15",
+                therapy_area="Lenguaje",
+                objectives="Seguimiento histórico.",
+                progress_notes=(
+                    "Registro de profesional anterior."
+                ),
+                created_by=previous_therapist,
+                updated_by=previous_therapist,
+            )
+        )
+
+        self.client.force_authenticate(
+            user=current_therapist,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        items = (
+            response.data["sections"]
+            ["history"]
+            ["items"]
+        )
+
+        history_ids = {
+            (
+                item["record_type"],
+                item["record_id"],
+            )
+            for item in items
+        }
+
+        self.assertIn(
+            (
+                "THERAPY_FOLLOWUP",
+                previous_followup.id,
+            ),
+            history_ids,
+        )
+
+    def test_history_respects_permissions_for_each_source(
+        self,
+    ):
+        therapist = self.create_user_with_role(
+            username="history_permission_therapist",
+            role_name="TERAPEUTA",
+        )
+
+        self.assign_student(
+            professional=therapist,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        followup = TherapyFollowUp.objects.create(
+            student=self.student_ana,
+            followup_date="2026-04-10",
+            therapy_area="Terapia física",
+            objectives="Objetivo.",
+            progress_notes="Progreso.",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        evaluation = Evaluation.objects.create(
+            student=self.student_ana,
+            evaluation_date="2026-04-20",
+            evaluation_type="Evaluación motora",
+            results="Resultado.",
+            professional_role="TERAPEUTA",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        therapist_group = Group.objects.get(
+            name="TERAPEUTA",
+        )
+
+        view_evaluations = Permission.objects.get(
+            content_type__app_label="users",
+            content_type__model="user",
+            codename="view_evaluations",
+        )
+
+        view_therapy = Permission.objects.get(
+            content_type__app_label="users",
+            content_type__model="user",
+            codename="view_therapy_followups",
+        )
+
+        self.client.force_authenticate(
+            user=therapist,
+        )
+
+        therapist_group.permissions.remove(
+            view_evaluations,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        items = (
+            response.data["sections"]
+            ["history"]
+            ["items"]
+        )
+
+        ids = {
+            (
+                item["record_type"],
+                item["record_id"],
+            )
+            for item in items
+        }
+
+        self.assertIn(
+            (
+                "THERAPY_FOLLOWUP",
+                followup.id,
+            ),
+            ids,
+        )
+        self.assertNotIn(
+            (
+                "EVALUATION",
+                evaluation.id,
+            ),
+            ids,
+        )
+
+        therapist_group.permissions.add(
+            view_evaluations,
+        )
+        therapist_group.permissions.remove(
+            view_therapy,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        items = (
+            response.data["sections"]
+            ["history"]
+            ["items"]
+        )
+
+        ids = {
+            (
+                item["record_type"],
+                item["record_id"],
+            )
+            for item in items
+        }
+
+        self.assertNotIn(
+            (
+                "THERAPY_FOLLOWUP",
+                followup.id,
+            ),
+            ids,
+        )
+        self.assertIn(
+            (
+                "EVALUATION",
+                evaluation.id,
+            ),
+            ids,
+        )
+
+    def test_multi_role_history_remains_isolated_by_context(
+        self,
+    ):
+        professional = User.objects.create_user(
+            username="history_multi_role",
+            password="MilalRecord123!",
+        )
+
+        professional.groups.add(
+            Group.objects.get(name="PSICOLOGO"),
+            Group.objects.get(name="TERAPEUTA"),
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="PSICOLOGO",
+            student=self.student_ana,
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        psychological = (
+            PsychologicalFollowUp.objects.create(
+                student=self.student_ana,
+                followup_date="2026-05-10",
+                reason="Seguimiento psicológico",
+                observations="Registro psicológico.",
+                created_by=professional,
+                updated_by=professional,
+            )
+        )
+
+        therapy = TherapyFollowUp.objects.create(
+            student=self.student_ana,
+            followup_date="2026-05-11",
+            therapy_area="Terapia ocupacional",
+            objectives="Objetivo terapéutico.",
+            progress_notes="Registro terapéutico.",
+            created_by=professional,
+            updated_by=professional,
+        )
+
+        self.client.force_authenticate(
+            user=professional,
+        )
+
+        psychology_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "PSICOLOGO",
+            },
+        )
+
+        therapy_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        psychology_ids = {
+            (
+                item["record_type"],
+                item["record_id"],
+            )
+            for item in (
+                psychology_response.data["sections"]
+                ["history"]
+                ["items"]
+            )
+        }
+
+        therapy_ids = {
+            (
+                item["record_type"],
+                item["record_id"],
+            )
+            for item in (
+                therapy_response.data["sections"]
+                ["history"]
+                ["items"]
+            )
+        }
+
+        self.assertIn(
+            (
+                "PSYCHOLOGICAL_FOLLOWUP",
+                psychological.id,
+            ),
+            psychology_ids,
+        )
+        self.assertNotIn(
+            (
+                "THERAPY_FOLLOWUP",
+                therapy.id,
+            ),
+            psychology_ids,
+        )
+
+        self.assertIn(
+            (
+                "THERAPY_FOLLOWUP",
+                therapy.id,
+            ),
+            therapy_ids,
+        )
+        self.assertNotIn(
+            (
+                "PSYCHOLOGICAL_FOLLOWUP",
+                psychological.id,
+            ),
+            therapy_ids,
+        )
+
+    def test_responsible_record_does_not_expose_history(
+        self,
+    ):
+        responsible = self.create_user_with_role(
+            username="history_responsible",
+            role_name="RESPONSABLE_INSTITUCIONAL",
+        )
+
+        self.client.force_authenticate(
+            user=responsible,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "RESPONSABLE_INSTITUCIONAL",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertNotIn(
+            "history",
+            response.data["sections"],
+        )
+
+    def test_record_history_is_read_only(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="history_read_only_docente",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        response = self.client.post(
+            self.record_url(self.student_ana)
+            + "?context=DOCENTE",
+            {
+                "history": {
+                    "items": [],
+                },
+            },
+            format="json",
+        )
+
+        self.assertIn(
+            response.status_code,
+            {
+                status.HTTP_403_FORBIDDEN,
+                status.HTTP_405_METHOD_NOT_ALLOWED,
+            },
+        )

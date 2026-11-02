@@ -47,6 +47,7 @@ from .document_validation import (
     validate_uploaded_document,
 )
 from rest_framework.parsers import FormParser, MultiPartParser
+from .history import build_student_history
 
 User = get_user_model()
 
@@ -976,6 +977,65 @@ class StudentViewSet(
                         "updated_by",
                     )
                     .all()
+                ),
+            }
+
+        can_view_academic_history = (
+            context == "DOCENTE"
+            and has_docente_permission(
+                request.user,
+                "view_academic_followups",
+            )
+        )
+
+        can_view_psychological_history = (
+            context == "PSICOLOGO"
+            and has_psychologist_permission(
+                request.user,
+                "view_psychological_followups",
+            )
+        )
+
+        can_view_therapy_history = (
+            context == "TERAPEUTA"
+            and has_therapist_permission(
+                request.user,
+                "view_therapy_followups",
+            )
+        )
+
+        can_view_evaluation_history = (
+            context in PROFESSIONAL_STUDENT_CONTEXTS
+            and has_evaluation_permission(
+                request.user,
+                context,
+                "view_evaluations",
+            )
+        )
+
+        if (
+            can_view_academic_history
+            or can_view_psychological_history
+            or can_view_therapy_history
+            or can_view_evaluation_history
+        ):
+            sections["history"] = {
+                "items": build_student_history(
+                    student=student,
+                    include_academic=(
+                        can_view_academic_history
+                    ),
+                    include_psychological=(
+                        can_view_psychological_history
+                    ),
+                    include_therapy=(
+                        can_view_therapy_history
+                    ),
+                    evaluation_role=(
+                        context
+                        if can_view_evaluation_history
+                        else None
+                    ),
                 ),
             }
 
