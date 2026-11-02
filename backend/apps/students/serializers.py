@@ -6,6 +6,7 @@ from .models import (
     Student,
     StudentDocument,
     StudentFamilyMember,
+    StudentIntervention,
     StudentProfessionalAssignment,
 )
 
@@ -482,6 +483,66 @@ class StudentRecordAssignmentUserSerializer(
             "first_name",
             "last_name",
         ]
+
+
+class StudentInterventionSerializer(
+    serializers.ModelSerializer
+):
+    student_id = serializers.IntegerField(
+        read_only=True,
+    )
+
+    responsible = StudentRecordAssignmentUserSerializer(
+        source="created_by",
+        read_only=True,
+    )
+
+    updated_by = StudentRecordAssignmentUserSerializer(
+        read_only=True,
+    )
+
+    objectives = serializers.CharField(
+        allow_blank=False,
+        trim_whitespace=True,
+    )
+
+    observations = serializers.CharField(
+        allow_blank=False,
+        trim_whitespace=True,
+    )
+
+    class Meta:
+        model = StudentIntervention
+        fields = [
+            "id",
+            "student_id",
+            "intervention_date",
+            "professional_role",
+            "objectives",
+            "observations",
+            "responsible",
+            "updated_by",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "student_id",
+            "professional_role",
+            "responsible",
+            "updated_by",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_intervention_date(self, value):
+        if value > timezone.localdate():
+            raise serializers.ValidationError(
+                "La fecha de la intervención no puede ser futura."
+            )
+
+        return value
 
 
 class StudentRecordAssignmentSerializer(
