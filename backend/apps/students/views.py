@@ -48,6 +48,7 @@ from .document_validation import (
 )
 from rest_framework.parsers import FormParser, MultiPartParser
 from .history import build_student_history
+from .evolution import build_student_evolution
 
 User = get_user_model()
 
@@ -1019,25 +1020,33 @@ class StudentViewSet(
             or can_view_therapy_history
             or can_view_evaluation_history
         ):
-            sections["history"] = {
-                "items": build_student_history(
-                    student=student,
-                    include_academic=(
-                        can_view_academic_history
-                    ),
-                    include_psychological=(
-                        can_view_psychological_history
-                    ),
-                    include_therapy=(
-                        can_view_therapy_history
-                    ),
-                    evaluation_role=(
-                        context
-                        if can_view_evaluation_history
-                        else None
-                    ),
+            history_items = build_student_history(
+                student=student,
+                include_academic=(
+                    can_view_academic_history
                 ),
+                include_psychological=(
+                    can_view_psychological_history
+                ),
+                include_therapy=(
+                    can_view_therapy_history
+                ),
+                evaluation_role=(
+                    context
+                    if can_view_evaluation_history
+                    else None
+                ),
+            )
+
+            sections["history"] = {
+                "items": history_items,
             }
+
+            sections["evolution"] = (
+                build_student_evolution(
+                    history_items
+                )
+            )
 
         serializer = StudentRecordSerializer(
             {

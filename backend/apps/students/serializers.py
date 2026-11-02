@@ -590,6 +590,106 @@ class StudentHistorySectionSerializer(
         )
 
 
+class StudentEvolutionEvidenceSerializer(
+    serializers.Serializer
+):
+    field = serializers.CharField(
+        read_only=True,
+    )
+    value = serializers.CharField(
+        read_only=True,
+    )
+
+
+class StudentEvolutionRecordSerializer(
+    serializers.Serializer
+):
+    record_id = serializers.IntegerField(
+        read_only=True,
+    )
+    student_id = serializers.IntegerField(
+        read_only=True,
+    )
+    record_type = serializers.CharField(
+        read_only=True,
+    )
+    area = serializers.CharField(
+        read_only=True,
+    )
+    date = serializers.DateField(
+        read_only=True,
+    )
+    title = serializers.CharField(
+        read_only=True,
+    )
+    evidence = StudentEvolutionEvidenceSerializer(
+        many=True,
+        read_only=True,
+    )
+
+
+class StudentEvolutionSummarySerializer(
+    serializers.Serializer
+):
+    total_records = serializers.IntegerField(
+        read_only=True,
+    )
+    followup_count = serializers.IntegerField(
+        read_only=True,
+    )
+    evaluation_count = serializers.IntegerField(
+        read_only=True,
+    )
+    period_count = serializers.IntegerField(
+        read_only=True,
+    )
+    first_record_date = serializers.DateField(
+        read_only=True,
+        allow_null=True,
+    )
+    latest_record_date = serializers.DateField(
+        read_only=True,
+        allow_null=True,
+    )
+
+
+class StudentEvolutionPeriodSerializer(
+    serializers.Serializer
+):
+    period = serializers.CharField(
+        read_only=True,
+    )
+    total_records = serializers.IntegerField(
+        read_only=True,
+    )
+    followup_count = serializers.IntegerField(
+        read_only=True,
+    )
+    evaluation_count = serializers.IntegerField(
+        read_only=True,
+    )
+    areas = serializers.ListField(
+        child=serializers.CharField(),
+        read_only=True,
+    )
+    records = StudentEvolutionRecordSerializer(
+        many=True,
+        read_only=True,
+    )
+
+
+class StudentEvolutionSectionSerializer(
+    serializers.Serializer
+):
+    summary = StudentEvolutionSummarySerializer(
+        read_only=True,
+    )
+    periods = StudentEvolutionPeriodSerializer(
+        many=True,
+        read_only=True,
+    )
+
+
 class StudentRecordSectionsSerializer(
     serializers.Serializer
 ):
@@ -628,6 +728,11 @@ class StudentRecordSectionsSerializer(
     )
 
     history = StudentHistorySectionSerializer(
+        read_only=True,
+        required=False,
+    )
+
+    evolution = StudentEvolutionSectionSerializer(
         read_only=True,
         required=False,
     )

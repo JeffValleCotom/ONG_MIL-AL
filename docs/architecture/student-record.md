@@ -378,6 +378,44 @@ históricos de su mismo contexto profesional aunque hayan sido creados por otro
 profesional previamente asignado. Esto permite continuidad del seguimiento sin
 perder la trazabilidad del autor original.
 
+### Evolución y progreso del estudiante
+
+HU-16 incorpora una proyección de evolución calculada a partir del historial
+autorizado del estudiante.
+
+La evolución no constituye una entidad persistente adicional y no realiza
+consultas independientes a los dominios de seguimiento. Utiliza los registros
+previamente filtrados por contexto, permisos y asignación en el historial
+integral.
+
+Los indicadores cuantitativos representan actividad registrada:
+
+- cantidad total de registros;
+- cantidad de seguimientos;
+- cantidad de evaluaciones;
+- períodos mensuales con actividad;
+- primera y última fecha con información registrada.
+
+Estos indicadores no representan una puntuación clínica, académica o
+terapéutica ni un porcentaje automático de mejoría.
+
+La información se agrupa por períodos mensuales y permite comparar dos períodos
+mediante:
+
+- variación en cantidad de registros;
+- variación en seguimientos;
+- variación en evaluaciones;
+- evidencia cualitativa contenida en los registros originales.
+
+La evidencia cualitativa conserva información como fortalezas, áreas de mejora,
+observaciones, notas emocionales o conductuales, notas de progreso, resultados
+de evaluaciones y recomendaciones, según el dominio de origen.
+
+La proyección de evolución hereda exactamente las restricciones de acceso del
+historial. Por lo tanto, no puede exponer registros pertenecientes a otro
+estudiante, contexto profesional o fuente para la cual el usuario no posea
+permiso.
+
 ## 11. Matriz de visibilidad del expediente
 
 | Información | Administrador | Docente asignado | Psicólogo asignado | Terapeuta asignado | Responsable institucional |

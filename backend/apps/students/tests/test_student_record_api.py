@@ -2356,3 +2356,423 @@ class StudentRecordAPITests(APITestCase):
                 status.HTTP_405_METHOD_NOT_ALLOWED,
             },
         )
+
+    def test_evolution_groups_records_by_month_and_builds_summary(
+        self,
+    ):
+        therapist = self.create_user_with_role(
+            username="evolution_therapist",
+            role_name="TERAPEUTA",
+        )
+
+        self.assign_student(
+            professional=therapist,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        TherapyFollowUp.objects.create(
+            student=self.student_ana,
+            followup_date="2026-01-10",
+            therapy_area="Lenguaje",
+            objectives="Objetivo enero.",
+            progress_notes="Avance enero.",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        TherapyFollowUp.objects.create(
+            student=self.student_ana,
+            followup_date="2026-02-10",
+            therapy_area="Lenguaje",
+            objectives="Objetivo febrero.",
+            progress_notes="Avance febrero.",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        Evaluation.objects.create(
+            student=self.student_ana,
+            evaluation_date="2026-02-20",
+            evaluation_type="Evaluación funcional",
+            results="Resultado febrero.",
+            professional_role="TERAPEUTA",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        self.client.force_authenticate(
+            user=therapist,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        evolution = (
+            response.data["sections"]["evolution"]
+        )
+
+        self.assertEqual(
+            evolution["summary"]["total_records"],
+            3,
+        )
+        self.assertEqual(
+            evolution["summary"]["followup_count"],
+            2,
+        )
+        self.assertEqual(
+            evolution["summary"]["evaluation_count"],
+            1,
+        )
+        self.assertEqual(
+            evolution["summary"]["period_count"],
+            2,
+        )
+        self.assertEqual(
+            str(
+                evolution["summary"]
+                ["first_record_date"]
+            ),
+            "2026-01-10",
+        )
+        self.assertEqual(
+            str(
+                evolution["summary"]
+                ["latest_record_date"]
+            ),
+            "2026-02-20",
+        )
+
+        periods = evolution["periods"]
+
+        self.assertEqual(
+            periods[0]["period"],
+            "2026-02",
+        )
+        self.assertEqual(
+            periods[0]["total_records"],
+            2,
+        )
+        self.assertEqual(
+            periods[0]["followup_count"],
+            1,
+        )
+        self.assertEqual(
+            periods[0]["evaluation_count"],
+            1,
+        )
+
+        self.assertEqual(
+            periods[1]["period"],
+            "2026-01",
+        )
+
+    def test_evolution_exposes_qualitative_evidence_without_score(
+        self,
+    ):
+        therapist = self.create_user_with_role(
+            username="evolution_evidence_therapist",
+            role_name="TERAPEUTA",
+        )
+
+        self.assign_student(
+            professional=therapist,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        TherapyFollowUp.objects.create(
+            student=self.student_ana,
+            followup_date="2026-03-10",
+            therapy_area="Terapia ocupacional",
+            objectives="Mejorar autonomía.",
+            progress_notes="Mayor independencia.",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        Evaluation.objects.create(
+            student=self.student_ana,
+            evaluation_date="2026-03-20",
+            evaluation_type="Evaluación funcional",
+            results="Mejor respuesta funcional.",
+            professional_role="TERAPEUTA",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        self.client.force_authenticate(
+            user=therapist,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        evolution = (
+            response.data["sections"]["evolution"]
+        )
+
+        self.assertNotIn(
+            "score",
+            evolution,
+        )
+        self.assertNotIn(
+            "progress_percentage",
+            evolution["summary"],
+        )
+
+        records = evolution["periods"][0]["records"]
+
+        evidence_fields = {
+            evidence["field"]
+            for record in records
+            for evidence in record["evidence"]
+        }
+
+        self.assertIn(
+            "progress_notes",
+            evidence_fields,
+        )
+        self.assertIn(
+            "results",
+            evidence_fields,
+        )
+
+    def test_evolution_remains_isolated_by_professional_context(
+        self,
+    ):
+        professional = User.objects.create_user(
+            username="evolution_multi_role",
+            password="MilalRecord123!",
+        )
+
+        professional.groups.add(
+            Group.objects.get(name="PSICOLOGO"),
+            Group.objects.get(name="TERAPEUTA"),
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="PSICOLOGO",
+            student=self.student_ana,
+        )
+
+        self.assign_student(
+            professional=professional,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        PsychologicalFollowUp.objects.create(
+            student=self.student_ana,
+            followup_date="2026-04-10",
+            reason="Seguimiento emocional",
+            observations="Registro psicológico.",
+            created_by=professional,
+            updated_by=professional,
+        )
+
+        TherapyFollowUp.objects.create(
+            student=self.student_ana,
+            followup_date="2026-04-11",
+            therapy_area="Lenguaje",
+            objectives="Objetivo terapéutico.",
+            progress_notes="Registro terapéutico.",
+            created_by=professional,
+            updated_by=professional,
+        )
+
+        self.client.force_authenticate(
+            user=professional,
+        )
+
+        psychology_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "PSICOLOGO",
+            },
+        )
+
+        therapy_response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        psychology_records = (
+            psychology_response.data["sections"]
+            ["evolution"]["periods"][0]["records"]
+        )
+
+        therapy_records = (
+            therapy_response.data["sections"]
+            ["evolution"]["periods"][0]["records"]
+        )
+
+        self.assertEqual(
+            {
+                item["area"]
+                for item in psychology_records
+            },
+            {"PSICOLOGICA"},
+        )
+
+        self.assertEqual(
+            {
+                item["area"]
+                for item in therapy_records
+            },
+            {"TERAPEUTICA"},
+        )
+
+    def test_evolution_uses_only_sources_allowed_in_history(
+        self,
+    ):
+        therapist = self.create_user_with_role(
+            username="evolution_permission_therapist",
+            role_name="TERAPEUTA",
+        )
+
+        self.assign_student(
+            professional=therapist,
+            professional_role="TERAPEUTA",
+            student=self.student_ana,
+        )
+
+        TherapyFollowUp.objects.create(
+            student=self.student_ana,
+            followup_date="2026-05-10",
+            therapy_area="Lenguaje",
+            objectives="Objetivo.",
+            progress_notes="Progreso.",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        Evaluation.objects.create(
+            student=self.student_ana,
+            evaluation_date="2026-05-20",
+            evaluation_type="Evaluación",
+            results="Resultado.",
+            professional_role="TERAPEUTA",
+            created_by=therapist,
+            updated_by=therapist,
+        )
+
+        therapist_group = Group.objects.get(
+            name="TERAPEUTA",
+        )
+
+        view_evaluations = Permission.objects.get(
+            content_type__app_label="users",
+            content_type__model="user",
+            codename="view_evaluations",
+        )
+
+        therapist_group.permissions.remove(
+            view_evaluations,
+        )
+
+        self.client.force_authenticate(
+            user=therapist,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "TERAPEUTA",
+            },
+        )
+
+        evolution = (
+            response.data["sections"]["evolution"]
+        )
+
+        self.assertEqual(
+            evolution["summary"]["total_records"],
+            1,
+        )
+        self.assertEqual(
+            evolution["summary"]["followup_count"],
+            1,
+        )
+        self.assertEqual(
+            evolution["summary"]["evaluation_count"],
+            0,
+        )
+
+        self.assertEqual(
+            evolution["periods"][0]["records"][0]
+            ["record_type"],
+            "THERAPY_FOLLOWUP",
+        )
+
+    def test_authorized_empty_history_returns_empty_evolution(
+        self,
+    ):
+        docente = self.create_user_with_role(
+            username="evolution_empty_docente",
+            role_name="DOCENTE",
+        )
+
+        self.assign_student(
+            professional=docente,
+            professional_role="DOCENTE",
+            student=self.student_ana,
+        )
+
+        AcademicFollowUp.objects.filter(
+            student=self.student_ana,
+        ).delete()
+
+        Evaluation.objects.filter(
+            student=self.student_ana,
+            professional_role="DOCENTE",
+        ).delete()
+
+        self.client.force_authenticate(
+            user=docente,
+        )
+
+        response = self.client.get(
+            self.record_url(self.student_ana),
+            {
+                "context": "DOCENTE",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        evolution = (
+            response.data["sections"]["evolution"]
+        )
+
+        self.assertEqual(
+            evolution["summary"]["total_records"],
+            0,
+        )
+        self.assertEqual(
+            evolution["summary"]["period_count"],
+            0,
+        )
+        self.assertEqual(
+            evolution["periods"],
+            [],
+        )
