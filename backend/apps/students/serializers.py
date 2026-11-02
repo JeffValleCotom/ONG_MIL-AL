@@ -526,6 +526,70 @@ class StudentRecordFamilySectionSerializer(
     )
 
 
+class StudentHistoryUserSerializer(
+    serializers.Serializer
+):
+    id = serializers.IntegerField(
+        read_only=True,
+    )
+    username = serializers.CharField(
+        read_only=True,
+    )
+    first_name = serializers.CharField(
+        read_only=True,
+    )
+    last_name = serializers.CharField(
+        read_only=True,
+    )
+
+
+class StudentHistoryItemSerializer(
+    serializers.Serializer
+):
+    record_id = serializers.IntegerField(
+        read_only=True,
+    )
+    student_id = serializers.IntegerField(
+        read_only=True,
+    )
+    record_type = serializers.CharField(
+        read_only=True,
+    )
+    area = serializers.CharField(
+        read_only=True,
+    )
+    date = serializers.DateField(
+        read_only=True,
+    )
+    title = serializers.CharField(
+        read_only=True,
+    )
+    details = serializers.DictField(
+        read_only=True,
+    )
+    created_by = StudentHistoryUserSerializer(
+        read_only=True,
+    )
+    updated_by = StudentHistoryUserSerializer(
+        read_only=True,
+    )
+    created_at = serializers.DateTimeField(
+        read_only=True,
+    )
+    updated_at = serializers.DateTimeField(
+        read_only=True,
+    )
+
+
+class StudentHistorySectionSerializer(
+        serializers.Serializer
+    ):
+        items = StudentHistoryItemSerializer(
+            many=True,
+            read_only=True,
+        )
+
+
 class StudentRecordSectionsSerializer(
     serializers.Serializer
 ):
@@ -559,6 +623,11 @@ class StudentRecordSectionsSerializer(
     )
 
     evaluations = EvaluationRecordSectionSerializer(
+        read_only=True,
+        required=False,
+    )
+
+    history = StudentHistorySectionSerializer(
         read_only=True,
         required=False,
     )

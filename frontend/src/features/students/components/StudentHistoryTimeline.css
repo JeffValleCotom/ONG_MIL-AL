@@ -1,0 +1,135 @@
+.student-history {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0 1.5rem 1.5rem;
+}
+
+.student-history::before {
+  position: absolute;
+  top: 1.5rem;
+  bottom: 1.5rem;
+  left: 1.85rem;
+  width: 2px;
+  background: #e2e8f0;
+  content: '';
+}
+
+.student-history__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  gap: 1rem;
+  padding-top: 1.5rem;
+}
+
+.student-history__marker {
+  z-index: 1;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-top: 0.35rem;
+  border: 2px solid #2563eb;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.student-history__content {
+  min-width: 0;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.student-history__item:last-child
+.student-history__content {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.student-history__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.student-history__header h3 {
+  margin: 0.5rem 0 0;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.student-history__header time {
+  color: #64748b;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.student-history__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.student-history__tag,
+.student-history__type {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.student-history__tag {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.student-history__type {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.student-history__details {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0 0;
+}
+
+.student-history__details div {
+  min-width: 0;
+}
+
+.student-history__details dt {
+  margin-bottom: 0.3rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.student-history__details dd {
+  margin: 0;
+  color: #334155;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.student-history__meta {
+  margin: 1.25rem 0 0;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 720px) {
+  .student-history__header {
+    flex-direction: column;
+  }
+
+  .student-history__details {
+    grid-template-columns: 1fr;
+  }
+}
