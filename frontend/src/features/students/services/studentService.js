@@ -396,3 +396,20 @@ export function updateStudentInterventionPlan(
     }
   )
 }
+
+export function createStudentInterventionFollowUp(
+  studentId,
+  planId,
+  followUpData,
+  context = ''
+) {
+  return apiRequest(
+    `/students/${studentId}/intervention-plans/`
+    + `${planId}/followups/`
+    + buildStudentContextQuery(context),
+    {
+      method: 'POST',
+      data: followUpData,
+    }
+  )
+}

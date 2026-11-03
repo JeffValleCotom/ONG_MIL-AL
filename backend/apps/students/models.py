@@ -571,3 +571,57 @@ class StudentInterventionPlan(models.Model):
             f"{self.status} - "
             f"{self.estimated_start_date}"
         )
+
+class StudentInterventionFollowUp(models.Model):
+    intervention_plan = models.ForeignKey(
+        StudentInterventionPlan,
+        on_delete=models.PROTECT,
+        related_name="followups",
+    )
+
+    followup_date = models.DateField()
+
+    progress = models.TextField()
+
+    results = models.TextField()
+
+    observations = models.TextField()
+
+    status = models.CharField(
+        max_length=20,
+        choices=StudentInterventionPlan.Status.choices,
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="student_intervention_followups_created",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = [
+            "-followup_date",
+            "-created_at",
+            "-id",
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "intervention_plan",
+                    "followup_date",
+                ],
+                name="interv_followup_plan_date_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.intervention_plan_id} - "
+            f"{self.followup_date} - "
+            f"{self.status}"
+        )

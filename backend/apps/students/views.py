@@ -30,6 +30,7 @@ from .serializers import (
     StudentDocumentUploadSerializer,
     StudentInterventionSerializer,
     StudentInterventionPlanSerializer,
+    StudentInterventionFollowUpSerializer,
 )
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
@@ -128,8 +129,9 @@ class StudentViewSet(
             return "manage_interventions"
 
         if self.action in (
-                    "intervention_plans",
-                    "intervention_plan_detail",
+            "intervention_plans",
+            "intervention_plan_detail",
+            "intervention_followups",
         ):
             return "manage_interventions"
 
@@ -395,6 +397,26 @@ class StudentViewSet(
             )
 
         return queryset
+
+    def get_accessible_intervention_plan(
+        self,
+        student,
+        context,
+        plan_id,
+    ):
+        return get_object_or_404(
+            student.intervention_plans.filter(
+                Q(
+                    created_by=self.request.user,
+                    professional_role=context,
+                )
+                | Q(
+                    responsible=self.request.user,
+                    responsible_role=context,
+                )
+            ),
+            pk=plan_id,
+        )
 
     @action(
         detail=True,
@@ -963,19 +985,24 @@ class StudentViewSet(
             "manage_interventions",
         )
 
-        plan = get_object_or_404(
-            student.intervention_plans.filter(
-                Q(
-                    created_by=request.user,
-                    professional_role=context,
-                )
-                | Q(
-                    responsible=request.user,
-                    responsible_role=context,
-                )
-            ),
-            pk=plan_id,
+        plan = self.get_accessible_intervention_plan(
+            student,
+            context,
+            plan_id,
         )
+
+        if plan.status in (
+            StudentInterventionPlan.Status.COMPLETED,
+            StudentInterventionPlan.Status.CANCELLED,
+        ):
+            raise serializers.ValidationError(
+                {
+                    "status": (
+                        "No se pueden registrar nuevos seguimientos "
+                        "para una intervención finalizada."
+                    )
+                }
+            )
 
         serializer = StudentInterventionPlanSerializer(
             plan,
@@ -1402,6 +1429,9 @@ class StudentViewSet(
                         "created_by",
                         "updated_by",
                     )
+                    .prefetch_related(
+                        "followups__created_by",
+                    )
                     .distinct()
                 ),
                 "responsible_options": [
@@ -1579,6 +1609,102 @@ class StudentViewSet(
                 ).data,
             },
             status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=(
+            r"intervention-plans/"
+            r"(?P<plan_id>\d+)/followups"
+        ),
+    )
+    def intervention_followups(
+        self,
+        request,
+        pk=None,
+        plan_id=None,
+    ):
+        student = self.get_object()
+        context = self.get_student_access_context()
+
+        self.require_intervention_permission(
+            context,
+            "manage_interventions",
+        )
+
+        if not student.is_active:
+            raise serializers.ValidationError(
+                {
+                    "student": (
+                        "No se puede registrar seguimiento "
+                        "para un estudiante inactivo."
+                    )
+                }
+            )
+
+        plan = self.get_accessible_intervention_plan(
+            student,
+            context,
+            plan_id,
+        )
+
+        if plan.status in (
+            StudentInterventionPlan.Status.COMPLETED,
+            StudentInterventionPlan.Status.CANCELLED,
+        ):
+            raise serializers.ValidationError(
+                {
+                    "status": (
+                        "No se pueden registrar nuevos seguimientos "
+                        "para una intervención finalizada."
+                    )
+                }
+            )
+
+        followup_serializer = (
+            StudentInterventionFollowUpSerializer(
+                data=request.data,
+                context=self.get_serializer_context(),
+            )
+        )
+
+        followup_serializer.is_valid(
+            raise_exception=True,
+        )
+
+        requested_status = (
+            followup_serializer.validated_data["status"]
+        )
+
+        # Reutilizamos la validación de transiciones
+        # implementada en HU-18.
+        plan_serializer = StudentInterventionPlanSerializer(
+            plan,
+            data={
+                "status": requested_status,
+            },
+            partial=True,
+            context=self.get_serializer_context(),
+        )
+
+        plan_serializer.is_valid(
+            raise_exception=True,
+        )
+
+        with transaction.atomic():
+            plan_serializer.save(
+                updated_by=request.user,
+            )
+
+            followup_serializer.save(
+                intervention_plan=plan,
+                created_by=request.user,
+            )
+
+        return Response(
+            followup_serializer.data,
+            status=status.HTTP_201_CREATED,
         )
 
 
