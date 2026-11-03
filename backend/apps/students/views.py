@@ -17,6 +17,7 @@ from .models import (
     Student,
     StudentDocument,
     StudentIntervention,
+    StudentInterventionPlan,
     StudentProfessionalAssignment,
 )
 from .serializers import (
@@ -28,6 +29,7 @@ from .serializers import (
     StudentDocumentSerializer,
     StudentDocumentUploadSerializer,
     StudentInterventionSerializer,
+    StudentInterventionPlanSerializer,
 )
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
@@ -123,6 +125,12 @@ class StudentViewSet(
             return "manage_interventions"
 
         if self.action == "intervention_detail":
+            return "manage_interventions"
+
+        if self.action in (
+                    "intervention_plans",
+                    "intervention_plan_detail",
+        ):
             return "manage_interventions"
 
         return self.required_permission_map.get(
@@ -842,6 +850,171 @@ class StudentViewSet(
                 "intervenciones en el contexto seleccionado."
             )
 
+    def validate_intervention_responsible(
+        self,
+        student,
+        responsible,
+        responsible_role,
+    ):
+        assignment = (
+            student.professional_assignments
+            .filter(
+                professional=responsible,
+                professional_role=responsible_role,
+                is_active=True,
+            )
+            .first()
+        )
+
+        if assignment is None:
+            raise serializers.ValidationError(
+                {
+                    "responsible_id": (
+                        "El responsable seleccionado no tiene "
+                        "una asignación activa con este estudiante "
+                        "para el rol indicado."
+                    )
+                }
+            )
+
+        return assignment
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="intervention-plans",
+    )
+    def intervention_plans(
+        self,
+        request,
+        pk=None,
+    ):
+        student = self.get_object()
+        context = self.get_student_access_context()
+
+        self.require_intervention_permission(
+            context,
+            "manage_interventions",
+        )
+
+        if not student.is_active:
+            raise serializers.ValidationError(
+                {
+                    "student": (
+                        "No se puede crear una planificación "
+                        "para un estudiante inactivo."
+                    )
+                }
+            )
+
+        serializer = StudentInterventionPlanSerializer(
+            data=request.data,
+            context=self.get_serializer_context(),
+        )
+
+        serializer.is_valid(
+            raise_exception=True,
+        )
+
+        responsible = (
+            serializer.validated_data["responsible"]
+        )
+        responsible_role = (
+            serializer.validated_data["responsible_role"]
+        )
+
+        self.validate_intervention_responsible(
+            student,
+            responsible,
+            responsible_role,
+        )
+
+        serializer.save(
+            student=student,
+            professional_role=context,
+            created_by=request.user,
+            updated_by=request.user,
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path=(
+            r"intervention-plans/"
+            r"(?P<plan_id>\d+)"
+        ),
+    )
+    def intervention_plan_detail(
+        self,
+        request,
+        pk=None,
+        plan_id=None,
+    ):
+        student = self.get_object()
+        context = self.get_student_access_context()
+
+        self.require_intervention_permission(
+            context,
+            "manage_interventions",
+        )
+
+        plan = get_object_or_404(
+            student.intervention_plans.filter(
+                Q(
+                    created_by=request.user,
+                    professional_role=context,
+                )
+                | Q(
+                    responsible=request.user,
+                    responsible_role=context,
+                )
+            ),
+            pk=plan_id,
+        )
+
+        serializer = StudentInterventionPlanSerializer(
+            plan,
+            data=request.data,
+            partial=True,
+            context=self.get_serializer_context(),
+        )
+
+        serializer.is_valid(
+            raise_exception=True,
+        )
+
+        responsible = serializer.validated_data.get(
+            "responsible",
+            plan.responsible,
+        )
+
+        responsible_role = (
+            serializer.validated_data.get(
+                "responsible_role",
+                plan.responsible_role,
+            )
+        )
+
+        self.validate_intervention_responsible(
+            student,
+            responsible,
+            responsible_role,
+        )
+
+        serializer.save(
+            updated_by=request.user,
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
+        )
+
     @action(
         detail=True,
         methods=["get", "post"],
@@ -1019,6 +1192,23 @@ class StudentViewSet(
             )
         )
 
+        can_manage_interventions = (
+            (
+                context == "PSICOLOGO"
+                and has_psychologist_permission(
+                    request.user,
+                    "manage_interventions",
+                )
+            )
+            or (
+                context == "TERAPEUTA"
+                and has_therapist_permission(
+                    request.user,
+                    "manage_interventions",
+                )
+            )
+        )
+
         capabilities = {
             "update_general": can_manage_students,
             "manage_family": can_manage_students,
@@ -1026,6 +1216,7 @@ class StudentViewSet(
             "manage_psychological": can_manage_psychological,
             "manage_therapy": can_manage_therapy,
             "manage_evaluations": can_manage_evaluations,
+            "manage_interventions": can_manage_interventions,
         }
 
         sections = {
@@ -1142,6 +1333,89 @@ class StudentViewSet(
                     )
                     .all()
                 ),
+            }
+
+        can_view_interventions = (
+            (
+                context == "PSICOLOGO"
+                and has_psychologist_permission(
+                    request.user,
+                    "view_interventions",
+                )
+            )
+            or (
+                context == "TERAPEUTA"
+                and has_therapist_permission(
+                    request.user,
+                    "view_interventions",
+                )
+            )
+        )
+
+        if can_view_interventions:
+            responsible_assignments = (
+                student.professional_assignments
+                .filter(
+                    professional_role__in=[
+                        "PSICOLOGO",
+                        "TERAPEUTA",
+                    ],
+                    is_active=True,
+                )
+                .select_related(
+                    "professional",
+                )
+                .order_by(
+                    "professional_role",
+                    "professional__first_name",
+                    "professional__last_name",
+                )
+            )
+
+            sections["interventions"] = {
+                "performed": (
+                    student.interventions
+                    .filter(
+                        created_by=request.user,
+                        professional_role=context,
+                    )
+                    .select_related(
+                        "created_by",
+                        "updated_by",
+                    )
+                    .all()
+                ),
+                "planned": (
+                    student.intervention_plans
+                    .filter(
+                        Q(
+                            created_by=request.user,
+                            professional_role=context,
+                        )
+                        | Q(
+                            responsible=request.user,
+                            responsible_role=context,
+                        )
+                    )
+                    .select_related(
+                        "responsible",
+                        "created_by",
+                        "updated_by",
+                    )
+                    .distinct()
+                ),
+                "responsible_options": [
+                    {
+                        "professional": (
+                            assignment.professional
+                        ),
+                        "professional_role": (
+                            assignment.professional_role
+                        ),
+                    }
+                    for assignment
+                    in responsible_assignments
+                ],
             }
 
         can_view_academic_history = (
