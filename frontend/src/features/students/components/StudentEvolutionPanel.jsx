@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
+import { useState } from 'react'
 
 import './StudentEvolutionPanel.css'
 
@@ -27,6 +23,8 @@ const TYPE_LABELS = {
   THERAPY_FOLLOWUP: 'Seguimiento terapéutico',
   EVALUATION: 'Evaluación',
 }
+
+const EMPTY_PERIODS = []
 
 
 function formatPeriod(value) {
@@ -160,7 +158,8 @@ function StudentEvolutionPanel({
   evolution,
 }) {
   const summary = evolution?.summary
-  const periods = evolution?.periods ?? []
+  const periods =
+    evolution?.periods ?? EMPTY_PERIODS
 
   const [
     previousPeriodKey,
@@ -172,34 +171,40 @@ function StudentEvolutionPanel({
     setCurrentPeriodKey,
   ] = useState('')
 
-  useEffect(() => {
-    setCurrentPeriodKey(
-      periods[0]?.period ?? ''
-    )
-
-    setPreviousPeriodKey(
-      periods[1]?.period
-      ?? periods[0]?.period
-      ?? ''
-    )
-  }, [periods])
-
-  const previousPeriod = useMemo(
-    () => periods.find(
-      (period) => (
-        period.period === previousPeriodKey
-      )
-    ),
-    [periods, previousPeriodKey]
-  )
-
-  const currentPeriod = useMemo(
-    () => periods.find(
+  const resolvedCurrentPeriodKey = (
+    periods.some(
       (period) => (
         period.period === currentPeriodKey
       )
-    ),
-    [periods, currentPeriodKey]
+    )
+      ? currentPeriodKey
+      : periods[0]?.period ?? ''
+  )
+
+  const resolvedPreviousPeriodKey = (
+    periods.some(
+      (period) => (
+        period.period === previousPeriodKey
+      )
+    )
+      ? previousPeriodKey
+      : (
+        periods[1]?.period
+        ?? periods[0]?.period
+        ?? ''
+      )
+  )
+
+  const previousPeriod = periods.find(
+    (period) => (
+      period.period === resolvedPreviousPeriodKey
+    )
+  )
+
+  const currentPeriod = periods.find(
+    (period) => (
+      period.period === resolvedCurrentPeriodKey
+    )
   )
 
   const maxRecords = Math.max(
@@ -309,7 +314,7 @@ function StudentEvolutionPanel({
                 Período anterior
 
                 <select
-                  value={previousPeriodKey}
+                  value={resolvedPreviousPeriodKey}
                   onChange={(event) => {
                     setPreviousPeriodKey(
                       event.target.value
@@ -331,7 +336,7 @@ function StudentEvolutionPanel({
                 Período de comparación
 
                 <select
-                  value={currentPeriodKey}
+                  value={resolvedCurrentPeriodKey}
                   onChange={(event) => {
                     setCurrentPeriodKey(
                       event.target.value

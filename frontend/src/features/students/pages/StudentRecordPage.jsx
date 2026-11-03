@@ -59,6 +59,8 @@ import StudentHistoryTimeline
   from '../components/StudentHistoryTimeline'
 import StudentEvolutionPanel
   from '../components/StudentEvolutionPanel'
+import StudentInterventionPanel
+  from '../components/StudentInterventionPanel'
 
 
 function formatDate(value) {
@@ -754,21 +756,6 @@ function StudentRecordPage({
     setIsAcademicFormOpen(true)
   }
 
-  function handleNewFamilyMember() {
-    setFamilyError('')
-    setFamilySuccess('')
-    setIsFamilyFormOpen(true)
-  }
-
-  function handleFamilyCancel() {
-    if (isSavingFamily) {
-      return
-    }
-
-    setFamilyError('')
-    setIsFamilyFormOpen(false)
-  }
-
   async function handleFamilySubmit(
     familyMemberData
   ) {
@@ -806,13 +793,10 @@ function StudentRecordPage({
           ? 'Información familiar actualizada correctamente.'
           : 'Familiar registrado correctamente.'
       )
-    } catch (error) {
-      // Conserva aquí el mismo manejo de error
-      // que ya utilizabas en este método.
-      setFamilyError(
-        error.message
-        || 'No fue posible guardar la información familiar.'
-      )
+      } catch (error) {
+        setFamilyError(
+          getFamilyErrorMessage(error)
+        )
     } finally {
       setIsSavingFamily(false)
     }
@@ -877,6 +861,10 @@ function StudentRecordPage({
   }
 
   function handleFamilyCancel() {
+    if (isSavingFamily) {
+      return
+    }
+
     setEditingFamilyMember(null)
     setFamilyError('')
     setIsFamilyFormOpen(false)
@@ -1318,6 +1306,9 @@ function StudentRecordPage({
   const canManageEvaluations = Boolean(
     capabilities.manage_evaluations
   )
+  const canManageInterventions = Boolean(
+    capabilities.manage_interventions
+  )
   const general = record?.sections?.general
   const family = record?.sections?.family
   const assignments =
@@ -1331,6 +1322,8 @@ function StudentRecordPage({
     record?.sections?.evaluations
   const history = record?.sections?.history
   const evolution = record?.sections?.evolution
+  const interventionSection =
+    record?.sections?.interventions
 
   const assignmentItems =
     assignments?.items ?? []
@@ -1347,6 +1340,14 @@ function StudentRecordPage({
     evaluationSection?.items ?? []
   const historyItems =
   history?.items ?? []
+  const performedInterventions =
+    interventionSection?.performed ?? []
+
+  const plannedInterventions =
+    interventionSection?.planned ?? []
+
+  const interventionResponsibleOptions =
+    interventionSection?.responsible_options ?? []
 
   return (
     <main className="student-record-page">
@@ -2158,6 +2159,38 @@ function StudentRecordPage({
                   ? handleEvaluationEdit
                   : undefined
               }
+            />
+          </section>
+        )}
+
+        {interventionSection && (
+          <section
+            className="student-record-card"
+            aria-labelledby="interventions-section-title"
+          >
+            <div className="student-record-card__header">
+              <div>
+                <h2 id="interventions-section-title">
+                  Intervenciones
+                </h2>
+
+                <p>
+                  Planifica acciones de seguimiento y consulta
+                  las intervenciones realizadas al estudiante.
+                </p>
+              </div>
+            </div>
+
+            <StudentInterventionPanel
+              studentId={studentId}
+              context={studentContext}
+              performed={performedInterventions}
+              planned={plannedInterventions}
+              responsibleOptions={
+                interventionResponsibleOptions
+              }
+              canManage={canManageInterventions}
+              onChanged={refreshRecord}
             />
           </section>
         )}

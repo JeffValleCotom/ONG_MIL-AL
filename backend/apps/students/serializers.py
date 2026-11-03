@@ -7,6 +7,7 @@ from .models import (
     StudentDocument,
     StudentFamilyMember,
     StudentIntervention,
+    StudentInterventionPlan,
     StudentProfessionalAssignment,
 )
 
@@ -545,6 +546,199 @@ class StudentInterventionSerializer(
         return value
 
 
+class StudentInterventionPlanSerializer(
+    serializers.ModelSerializer
+):
+    student_id = serializers.IntegerField(
+        read_only=True,
+    )
+
+    responsible = StudentRecordAssignmentUserSerializer(
+        read_only=True,
+    )
+
+    responsible_id = serializers.PrimaryKeyRelatedField(
+        source="responsible",
+        queryset=User.objects.all(),
+        write_only=True,
+    )
+
+    responsible_role = serializers.ChoiceField(
+        choices=StudentIntervention.ProfessionalRole.choices,
+    )
+
+    created_by = StudentRecordAssignmentUserSerializer(
+        read_only=True,
+    )
+
+    updated_by = StudentRecordAssignmentUserSerializer(
+        read_only=True,
+    )
+
+    objectives = serializers.CharField(
+        allow_blank=False,
+        trim_whitespace=True,
+    )
+
+    class Meta:
+        model = StudentInterventionPlan
+        fields = [
+            "id",
+            "student_id",
+            "objectives",
+            "estimated_start_date",
+            "estimated_end_date",
+            "professional_role",
+            "responsible",
+            "responsible_id",
+            "responsible_role",
+            "status",
+            "created_by",
+            "updated_by",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "student_id",
+            "professional_role",
+            "created_by",
+            "updated_by",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        start_date = attrs.get(
+            "estimated_start_date",
+            getattr(
+                self.instance,
+                "estimated_start_date",
+                None,
+            ),
+        )
+
+        end_date = attrs.get(
+            "estimated_end_date",
+            getattr(
+                self.instance,
+                "estimated_end_date",
+                None,
+            ),
+        )
+
+        if (
+            start_date is not None
+            and end_date is not None
+            and end_date < start_date
+        ):
+            raise serializers.ValidationError(
+                {
+                    "estimated_end_date": (
+                        "La fecha final no puede ser anterior "
+                        "a la fecha inicial."
+                    )
+                }
+            )
+
+        new_status = attrs.get(
+            "status",
+            getattr(
+                self.instance,
+                "status",
+                StudentInterventionPlan.Status.PLANNED,
+            ),
+        )
+
+        if self.instance is None:
+            if (
+                new_status
+                != StudentInterventionPlan.Status.PLANNED
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "status": (
+                            "Una planificación nueva debe iniciar "
+                            "en estado PLANIFICADA."
+                        )
+                    }
+                )
+
+            return attrs
+
+        allowed_transitions = {
+            StudentInterventionPlan.Status.PLANNED: {
+                StudentInterventionPlan.Status.PLANNED,
+                StudentInterventionPlan.Status.IN_PROGRESS,
+                StudentInterventionPlan.Status.CANCELLED,
+            },
+            StudentInterventionPlan.Status.IN_PROGRESS: {
+                StudentInterventionPlan.Status.IN_PROGRESS,
+                StudentInterventionPlan.Status.COMPLETED,
+                StudentInterventionPlan.Status.CANCELLED,
+            },
+            StudentInterventionPlan.Status.COMPLETED: {
+                StudentInterventionPlan.Status.COMPLETED,
+            },
+            StudentInterventionPlan.Status.CANCELLED: {
+                StudentInterventionPlan.Status.CANCELLED,
+            },
+        }
+
+        if (
+            new_status
+            not in allowed_transitions[
+                self.instance.status
+            ]
+        ):
+            raise serializers.ValidationError(
+                {
+                    "status": (
+                        "La transición de estado solicitada "
+                        "no es válida."
+                    )
+                }
+            )
+
+        return attrs
+
+
+class StudentInterventionResponsibleOptionSerializer(
+    serializers.Serializer
+):
+    professional = StudentRecordAssignmentUserSerializer(
+        read_only=True,
+    )
+
+    professional_role = serializers.CharField(
+        read_only=True,
+    )
+
+
+class StudentInterventionSectionSerializer(
+    serializers.Serializer
+):
+    performed = StudentInterventionSerializer(
+        many=True,
+        read_only=True,
+    )
+
+    planned = StudentInterventionPlanSerializer(
+        many=True,
+        read_only=True,
+    )
+
+    responsible_options = (
+        StudentInterventionResponsibleOptionSerializer(
+            many=True,
+            read_only=True,
+        )
+    )
+
+
 class StudentRecordAssignmentSerializer(
     serializers.ModelSerializer
 ):
@@ -798,6 +992,11 @@ class StudentRecordSectionsSerializer(
         required=False,
     )
 
+    interventions = StudentInterventionSectionSerializer(
+        read_only=True,
+        required=False,
+    )
+
 
 class StudentRecordCapabilitiesSerializer(
     serializers.Serializer
@@ -818,6 +1017,9 @@ class StudentRecordCapabilitiesSerializer(
         read_only=True,
     )
     manage_evaluations = serializers.BooleanField(
+        read_only=True,
+    )
+    manage_interventions = serializers.BooleanField(
         read_only=True,
     )
 

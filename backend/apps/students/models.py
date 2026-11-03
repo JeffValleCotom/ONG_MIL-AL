@@ -482,3 +482,92 @@ class StudentIntervention(models.Model):
             f"{self.professional_role} - "
             f"{self.intervention_date}"
         )
+
+class StudentInterventionPlan(models.Model):
+    class Status(models.TextChoices):
+        PLANNED = "PLANNED", "Planificada"
+        IN_PROGRESS = "IN_PROGRESS", "En progreso"
+        COMPLETED = "COMPLETED", "Completada"
+        CANCELLED = "CANCELLED", "Cancelada"
+
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.PROTECT,
+        related_name="intervention_plans",
+    )
+
+    objectives = models.TextField()
+
+    estimated_start_date = models.DateField()
+
+    estimated_end_date = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    professional_role = models.CharField(
+        max_length=20,
+        choices=StudentIntervention.ProfessionalRole.choices,
+    )
+
+    responsible = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="student_intervention_plans_responsible",
+    )
+
+    responsible_role = models.CharField(
+        max_length=20,
+        choices=StudentIntervention.ProfessionalRole.choices,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PLANNED,
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="student_intervention_plans_created",
+    )
+
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="student_intervention_plans_updated",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = [
+            "estimated_start_date",
+            "-created_at",
+            "-id",
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "student",
+                    "status",
+                    "estimated_start_date",
+                ],
+                name="interv_plan_student_status_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.student.institutional_code} - "
+            f"{self.status} - "
+            f"{self.estimated_start_date}"
+        )

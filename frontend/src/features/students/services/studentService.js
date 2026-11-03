@@ -318,3 +318,81 @@ export function uploadStudentDocument(
     }
   )
 }
+
+function buildStudentContextQuery(context = '') {
+  const params = new URLSearchParams()
+
+  if (context) {
+    params.set('context', context)
+  }
+
+  const queryString = params.toString()
+
+  return queryString
+    ? `?${queryString}`
+    : ''
+}
+
+export function createStudentIntervention(
+  studentId,
+  interventionData,
+  context = ''
+) {
+  return apiRequest(
+    `/students/${studentId}/interventions/`
+    + buildStudentContextQuery(context),
+    {
+      method: 'POST',
+      data: interventionData,
+    }
+  )
+}
+
+export function updateStudentIntervention(
+  studentId,
+  interventionId,
+  interventionData,
+  context = ''
+) {
+  return apiRequest(
+    `/students/${studentId}/interventions/`
+    + `${interventionId}/`
+    + buildStudentContextQuery(context),
+    {
+      method: 'PATCH',
+      data: interventionData,
+    }
+  )
+}
+
+export function createStudentInterventionPlan(
+  studentId,
+  planData,
+  context = ''
+) {
+  return apiRequest(
+    `/students/${studentId}/intervention-plans/`
+    + buildStudentContextQuery(context),
+    {
+      method: 'POST',
+      data: planData,
+    }
+  )
+}
+
+export function updateStudentInterventionPlan(
+  studentId,
+  planId,
+  planData,
+  context = ''
+) {
+  return apiRequest(
+    `/students/${studentId}/intervention-plans/`
+    + `${planId}/`
+    + buildStudentContextQuery(context),
+    {
+      method: 'PATCH',
+      data: planData,
+    }
+  )
+}

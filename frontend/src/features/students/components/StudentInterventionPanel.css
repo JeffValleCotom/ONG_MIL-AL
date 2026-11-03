@@ -1,0 +1,93 @@
+.student-interventions {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.student-interventions__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.student-interventions__form {
+  display: grid;
+  gap: 1rem;
+}
+
+.student-interventions__form label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.student-interventions__form input,
+.student-interventions__form select,
+.student-interventions__form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  font: inherit;
+}
+
+.student-interventions__form textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.student-interventions__grid {
+  display: grid;
+  grid-template-columns: repeat(
+    2,
+    minmax(0, 1fr)
+  );
+  gap: 1rem;
+}
+
+.student-interventions__section {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.student-interventions__section h3 {
+  margin: 0;
+}
+
+.student-interventions__list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.student-interventions__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.65rem;
+}
+
+.student-interventions__item p {
+  margin: 0.5rem 0;
+}
+
+.student-interventions__item small {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+.student-interventions__empty {
+  margin: 0;
+  color: #64748b;
+}
+
+@media (max-width: 700px) {
+  .student-interventions__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-interventions__item {
+    flex-direction: column;
+  }
+}
