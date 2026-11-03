@@ -62,6 +62,7 @@
 .student-interventions__item {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 1rem;
   padding: 1rem;
   border: 1px solid #e2e8f0;
@@ -90,4 +91,39 @@
   .student-interventions__item {
     flex-direction: column;
   }
+}
+
+.student-interventions__followups {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.student-interventions__followups h4 {
+  margin: 0 0 0.75rem;
+}
+
+.student-interventions__followup-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.student-interventions__followup {
+  padding: 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+}
+
+.student-interventions__followup-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.student-interventions__followup p {
+  margin: 0.5rem 0;
+}
+
+.student-interventions__item > .button {
+  align-self: flex-start;
 }

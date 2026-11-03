@@ -5,6 +5,7 @@ import {
   updateStudentIntervention,
   createStudentInterventionPlan,
   updateStudentInterventionPlan,
+  createStudentInterventionFollowUp,
 } from '../services/studentService'
 
 import './StudentInterventionPanel.css'
@@ -150,7 +151,22 @@ function StudentInterventionPanel({
     estimated_start_date: todayValue(),
     estimated_end_date: '',
     responsible_key: '',
-    status: 'PLANNED',
+  })
+
+  const [
+    followUpPlan,
+    setFollowUpPlan,
+  ] = useState(null)
+
+  const [
+    followUpForm,
+    setFollowUpForm,
+  ] = useState({
+    followup_date: todayValue(),
+    progress: '',
+    results: '',
+    observations: '',
+    status: 'IN_PROGRESS',
   })
 
 
@@ -191,8 +207,6 @@ function StudentInterventionPanel({
       responsible_key: plan
         ? `${plan.responsible?.id}|${plan.responsible_role}`
         : '',
-      status:
-        plan?.status ?? 'PLANNED',
     })
 
     setActiveForm('plan')
@@ -208,14 +222,37 @@ function StudentInterventionPanel({
     setEditingPerformed(null)
     setEditingPlan(null)
     setError('')
+    setFollowUpPlan(null)
   }
 
+  function openFollowUpForm(plan) {
+    setError('')
+    setSuccess('')
+    setEditingPlan(null)
+    setEditingPerformed(null)
+    setFollowUpPlan(plan)
+
+    setFollowUpForm({
+      followup_date: todayValue(),
+      progress: '',
+      results: '',
+      observations: '',
+      status: (
+        plan.status === 'PLANNED'
+          ? 'IN_PROGRESS'
+          : plan.status
+      ),
+    })
+
+    setActiveForm('followup')
+  }
 
   async function refreshAfterSave(message) {
     setActiveForm('')
     setEditingPerformed(null)
     setEditingPlan(null)
     setSuccess(message)
+    setFollowUpPlan(null)
 
     if (onChanged) {
       await onChanged()
@@ -294,7 +331,6 @@ function StudentInterventionPanel({
         planForm.estimated_end_date || null,
       responsible_id: Number(responsibleId),
       responsible_role: responsibleRole,
-      status: planForm.status,
     }
 
     setIsSaving(true)
@@ -324,6 +360,40 @@ function StudentInterventionPanel({
           'Planificación creada correctamente.'
         )
       }
+    } catch (saveError) {
+      setError(
+        getErrorMessage(saveError)
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function submitFollowUp(event) {
+    event.preventDefault()
+
+    if (
+      isSaving
+      || !followUpPlan
+    ) {
+      return
+    }
+
+    setIsSaving(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      await createStudentInterventionFollowUp(
+        studentId,
+        followUpPlan.id,
+        followUpForm,
+        context
+      )
+
+      await refreshAfterSave(
+        'Seguimiento registrado correctamente.'
+      )
     } catch (saveError) {
       setError(
         getErrorMessage(saveError)
@@ -483,34 +553,6 @@ function StudentInterventionPanel({
             </select>
           </label>
 
-          {editingPlan && (
-            <label>
-              Estado
-              <select
-                value={planForm.status}
-                onChange={(event) => {
-                  setPlanForm({
-                    ...planForm,
-                    status: event.target.value,
-                  })
-                }}
-              >
-                <option value="PLANNED">
-                  Planificada
-                </option>
-                <option value="IN_PROGRESS">
-                  En progreso
-                </option>
-                <option value="COMPLETED">
-                  Completada
-                </option>
-                <option value="CANCELLED">
-                  Cancelada
-                </option>
-              </select>
-            </label>
-          )}
-
           <div className="student-interventions__actions">
             <button
               className="button button--primary"
@@ -625,6 +667,156 @@ function StudentInterventionPanel({
         </form>
       )}
 
+      {activeForm === 'followup' && followUpPlan && (
+        <form
+          className="student-interventions__form"
+          onSubmit={submitFollowUp}
+        >
+          <h3>Registrar seguimiento</h3>
+
+          <p>
+            Objetivo de la intervención:{' '}
+            <strong>
+              {followUpPlan.objectives}
+            </strong>
+          </p>
+
+          {error && (
+            <div
+              className="form-message form-message--error"
+              role="alert"
+            >
+              {error}
+            </div>
+          )}
+
+          <label>
+            Fecha del seguimiento
+            <input
+              type="date"
+              required
+              max={todayValue()}
+              value={followUpForm.followup_date}
+              onChange={(event) => {
+                setFollowUpForm({
+                  ...followUpForm,
+                  followup_date:
+                    event.target.value,
+                })
+              }}
+            />
+          </label>
+
+          <label>
+            Avances
+            <textarea
+              required
+              value={followUpForm.progress}
+              onChange={(event) => {
+                setFollowUpForm({
+                  ...followUpForm,
+                  progress:
+                    event.target.value,
+                })
+              }}
+            />
+          </label>
+
+          <label>
+            Resultados
+            <textarea
+              required
+              value={followUpForm.results}
+              onChange={(event) => {
+                setFollowUpForm({
+                  ...followUpForm,
+                  results:
+                    event.target.value,
+                })
+              }}
+            />
+          </label>
+
+          <label>
+            Observaciones
+            <textarea
+              required
+              value={followUpForm.observations}
+              onChange={(event) => {
+                setFollowUpForm({
+                  ...followUpForm,
+                  observations:
+                    event.target.value,
+                })
+              }}
+            />
+          </label>
+
+          <label>
+            Estado resultante
+            <select
+              value={followUpForm.status}
+              onChange={(event) => {
+                setFollowUpForm({
+                  ...followUpForm,
+                  status:
+                    event.target.value,
+                })
+              }}
+            >
+              {followUpPlan.status === 'PLANNED' && (
+                <>
+                  <option value="PLANNED">
+                    Planificada
+                  </option>
+                  <option value="IN_PROGRESS">
+                    En progreso
+                  </option>
+                  <option value="CANCELLED">
+                    Cancelada
+                  </option>
+                </>
+              )}
+
+              {followUpPlan.status === 'IN_PROGRESS' && (
+                <>
+                  <option value="IN_PROGRESS">
+                    En progreso
+                  </option>
+                  <option value="COMPLETED">
+                    Completada
+                  </option>
+                  <option value="CANCELLED">
+                    Cancelada
+                  </option>
+                </>
+              )}
+            </select>
+          </label>
+
+          <div className="student-interventions__actions">
+            <button
+              className="button button--primary"
+              type="submit"
+              disabled={isSaving}
+            >
+              {isSaving
+                ? 'Guardando...'
+                : 'Registrar seguimiento'}
+            </button>
+
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={cancelForm}
+              disabled={isSaving}
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
+
       <section className="student-interventions__section">
         <h3>Intervenciones planificadas</h3>
 
@@ -675,6 +867,75 @@ function StudentInterventionPanel({
                     Editar
                   </button>
                 )}
+
+                {canManage
+                  && (
+                    plan.status === 'PLANNED'
+                    || plan.status === 'IN_PROGRESS'
+                  ) && (
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    onClick={() => openFollowUpForm(plan)}
+                  >
+                    Registrar avance
+                  </button>
+                )}
+
+                <div className="student-interventions__followups">
+                  <h4>Historial de seguimiento</h4>
+
+                  {(plan.followups ?? []).length === 0 ? (
+                    <p className="student-interventions__empty">
+                      Aún no se han registrado seguimientos.
+                    </p>
+                  ) : (
+                    <div className="student-interventions__followup-list">
+                      {plan.followups.map((followUp) => (
+                        <article
+                          key={followUp.id}
+                          className="student-interventions__followup"
+                        >
+                          <div className="student-interventions__followup-header">
+                            <strong>
+                              {formatDate(
+                                followUp.followup_date
+                              )}
+                            </strong>
+
+                            <span>
+                              {STATUS_LABELS[followUp.status]
+                                ?? followUp.status}
+                            </span>
+                          </div>
+
+                          <p>
+                            <b>Avances:</b>{' '}
+                            {followUp.progress}
+                          </p>
+
+                          <p>
+                            <b>Resultados:</b>{' '}
+                            {followUp.results}
+                          </p>
+
+                          <p>
+                            <b>Observaciones:</b>{' '}
+                            {followUp.observations}
+                          </p>
+
+                          <small>
+                            Registrado por:{' '}
+                            {professionalName(
+                              followUp.created_by
+                            )}
+                          </small>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
               </article>
             ))}
           </div>

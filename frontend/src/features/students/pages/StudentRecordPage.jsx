@@ -1791,7 +1791,7 @@ function StudentRecordPage({
                       handleNewPsychologicalFollowUp
                     }
                   >
-                    Registrar seguimiento
+                    Registrar seguimiento psicológico
                   </button>
                 )}
               </div>

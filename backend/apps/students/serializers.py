@@ -9,6 +9,7 @@ from .models import (
     StudentIntervention,
     StudentInterventionPlan,
     StudentProfessionalAssignment,
+    StudentInterventionFollowUp,
 )
 
 from apps.academic.serializers import (
@@ -546,6 +547,62 @@ class StudentInterventionSerializer(
         return value
 
 
+class StudentInterventionFollowUpSerializer(
+    serializers.ModelSerializer
+):
+    intervention_plan_id = serializers.IntegerField(
+        read_only=True,
+    )
+
+    created_by = StudentRecordAssignmentUserSerializer(
+        read_only=True,
+    )
+
+    progress = serializers.CharField(
+        allow_blank=False,
+        trim_whitespace=True,
+    )
+
+    results = serializers.CharField(
+        allow_blank=False,
+        trim_whitespace=True,
+    )
+
+    observations = serializers.CharField(
+        allow_blank=False,
+        trim_whitespace=True,
+    )
+
+    class Meta:
+        model = StudentInterventionFollowUp
+        fields = [
+            "id",
+            "intervention_plan_id",
+            "followup_date",
+            "progress",
+            "results",
+            "observations",
+            "status",
+            "created_by",
+            "created_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "intervention_plan_id",
+            "created_by",
+            "created_at",
+        ]
+
+    def validate_followup_date(self, value):
+        if value > timezone.localdate():
+            raise serializers.ValidationError(
+                "La fecha del seguimiento no puede ser futura."
+            )
+
+        return value
+
+
 class StudentInterventionPlanSerializer(
     serializers.ModelSerializer
 ):
@@ -580,6 +637,11 @@ class StudentInterventionPlanSerializer(
         trim_whitespace=True,
     )
 
+    followups = StudentInterventionFollowUpSerializer(
+        many=True,
+        read_only=True,
+    )
+
     class Meta:
         model = StudentInterventionPlan
         fields = [
@@ -597,6 +659,7 @@ class StudentInterventionPlanSerializer(
             "updated_by",
             "created_at",
             "updated_at",
+            "followups",
         ]
 
         read_only_fields = [
