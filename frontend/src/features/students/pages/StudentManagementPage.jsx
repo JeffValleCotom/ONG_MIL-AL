@@ -13,6 +13,8 @@ import StudentTable
   from '../components/StudentTable'
 import StudentRecordPage
   from './StudentRecordPage'
+import ReportManagementPage
+  from '../../reports/pages/ReportManagementPage'
 import {
   activateStudent,
   createStudent,
@@ -113,6 +115,8 @@ function StudentManagementPage({
     useState(null)
   const [recordStudent, setRecordStudent] =
     useState(null)
+  const [showReports, setShowReports] =
+    useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -341,6 +345,20 @@ function StudentManagementPage({
     ? 'desactivar'
     : 'activar'
 
+    if (showReports) {
+      return (
+        <ReportManagementPage
+          students={students}
+          studentContext={studentContext}
+          onBack={() => {
+            setShowReports(false)
+          }}
+          onLogout={onLogout}
+          onChangeSpace={onChangeSpace}
+        />
+      )
+    }
+
     if (recordStudent) {
       return (
         <StudentRecordPage
@@ -380,6 +398,21 @@ function StudentManagementPage({
         </div>
 
         <div className="students-page__actions">
+          <button
+                className="button button--secondary"
+                type="button"
+                onClick={() => {
+                  setShowReports(true)
+                }}
+                disabled={
+                  isSubmitting
+                  || isUpdating
+                  || isChangingStatus
+                  || isLoading
+                }
+              >
+                Reportes
+              </button>
           {onChangeSpace && (
               <button
                 className="button button--secondary"
@@ -393,6 +426,7 @@ function StudentManagementPage({
               >
                 Cambiar espacio
               </button>
+
             )}
 
           <button

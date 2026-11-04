@@ -30,4 +30,8 @@ urlpatterns = [
         "api/v1/",
         include("apps.evaluations.urls"),
     ),
+    path(
+        "api/v1/",
+        include("apps.reports.urls"),
+    ),
 ]
