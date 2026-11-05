@@ -59,6 +59,8 @@ import StudentHistoryTimeline
   from '../components/StudentHistoryTimeline'
 import StudentEvolutionPanel
   from '../components/StudentEvolutionPanel'
+import AIInsightPanel
+  from '../../aiSupport/components/AIInsightPanel'
 import StudentInterventionPanel
   from '../components/StudentInterventionPanel'
 
@@ -2240,6 +2242,36 @@ function StudentRecordPage({
 
             <StudentEvolutionPanel
               evolution={evolution}
+            />
+          </section>
+        )}
+
+        {[
+          'DOCENTE',
+          'PSICOLOGO',
+          'TERAPEUTA',
+        ].includes(studentContext) && (
+          <section
+            className="student-record-card"
+            aria-labelledby="ai-support-section-title"
+          >
+            <div className="student-record-card__header">
+              <div>
+                <h2 id="ai-support-section-title">
+                  Asistente IA
+                </h2>
+
+                <p>
+                  Analiza la información disponible de
+                  seguimiento como apoyo a la revisión
+                  profesional.
+                </p>
+              </div>
+            </div>
+
+            <AIInsightPanel
+              studentId={studentId}
+              context={studentContext}
             />
           </section>
         )}

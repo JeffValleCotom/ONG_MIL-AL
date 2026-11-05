@@ -13,6 +13,8 @@ import {
   getReport,
   getReports,
 } from '../services/reportService'
+import ReportAISuggestionPanel
+  from '../../aiSupport/components/ReportAISuggestionPanel'
 
 const FIELD_LABELS = {
   academic_period: 'Período académico',
@@ -1130,6 +1132,11 @@ function ReportManagementPage({
               >
                 <ReportViewer
                   report={openedReport}
+                />
+
+                <ReportAISuggestionPanel
+                  report={openedReport}
+                  context={studentContext}
                 />
 
                 {exportError && (
