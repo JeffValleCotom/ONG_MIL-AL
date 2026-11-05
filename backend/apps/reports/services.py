@@ -331,6 +331,52 @@ def _planned_interventions(
 
     return result
 
+SUPPORTED_DATA_SECTIONS = {
+    "academic": _academic_items,
+    "psychological": _psychological_items,
+    "therapy": _therapy_items,
+    "evaluations": _evaluation_items,
+    "performed_interventions": _performed_interventions,
+    "planned_interventions": _planned_interventions,
+}
+
+
+def build_student_data_sections(
+    *,
+    student,
+    sections,
+    date_from=None,
+    date_to=None,
+):
+    unsupported = set(sections) - set(
+        SUPPORTED_DATA_SECTIONS
+    )
+
+    if unsupported:
+        unsupported_names = ", ".join(
+            sorted(unsupported)
+        )
+        raise ValueError(
+            "Secciones de información "
+            "no soportadas: "
+            f"{unsupported_names}"
+        )
+
+    result = {}
+
+    for section in sections:
+        builder = SUPPORTED_DATA_SECTIONS[
+            section
+        ]
+
+        result[section] = builder(
+            student,
+            date_from,
+            date_to,
+        )
+
+    return result
+
 
 def build_report_snapshot(
     *,

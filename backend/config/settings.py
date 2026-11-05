@@ -54,6 +54,39 @@ PASSWORD_RESET_FRONTEND_URL = os.getenv(
     "http://localhost:5173/password-reset",
 )
 
+# Artificial intelligence
+AI_PROVIDER = os.getenv(
+    "AI_PROVIDER",
+    "openai",
+).strip().lower()
+
+AI_MODEL = os.getenv(
+    "AI_MODEL",
+    "gpt-6-luna",
+).strip()
+
+AI_REASONING_EFFORT = os.getenv(
+    "AI_REASONING_EFFORT",
+    "low",
+).strip().lower()
+
+AI_TIMEOUT_SECONDS = int(
+    os.getenv(
+        "AI_TIMEOUT_SECONDS",
+        "45",
+    )
+)
+
+OPENAI_API_KEY = os.getenv(
+    "OPENAI_API_KEY",
+    "",
+).strip()
+
+OLLAMA_BASE_URL = os.getenv(
+    "OLLAMA_BASE_URL",
+    "http://127.0.0.1:11434",
+).rstrip("/")
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -63,6 +96,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "apps.ai_support.apps.AiSupportConfig",
 
     # Librerías de terceros
     "rest_framework",
