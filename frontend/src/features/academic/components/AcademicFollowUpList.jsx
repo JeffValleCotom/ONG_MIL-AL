@@ -1,3 +1,11 @@
+import { useState } from 'react'
+
+import AppModal
+  from '../../../components/ui/AppModal'
+
+import './AcademicFollowUp.css'
+
+
 function formatDate(value) {
   if (!value) {
     return '—'
@@ -34,84 +42,183 @@ function AcademicFollowUpList({
   followups,
   onEdit,
 }) {
+  const [
+    selectedFollowUp,
+    setSelectedFollowUp,
+  ] = useState(null)
+
   if (followups.length === 0) {
     return (
-      <div className="students-empty">
-        No hay seguimientos académicos registrados.
+      <div className="academic-followup-empty">
+        <span aria-hidden="true">
+          ○
+        </span>
+
+        <strong>
+          Sin seguimientos académicos
+        </strong>
+
+        <p>
+          Todavía no se han registrado seguimientos
+          académicos para este estudiante.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="academic-followup-list">
-      {followups.map((followUp) => (
-        <article
-          className="academic-followup-item"
-          key={followUp.id}
-        >
-          <div className="academic-followup-item__header">
-            <div>
-              <h3>{followUp.subject}</h3>
+    <>
+      <div className="academic-followup-list">
+        {followups.map((followUp) => (
+          <article
+            className="academic-followup-item"
+            key={followUp.id}
+          >
+            <div className="academic-followup-item__main">
+              <div className="academic-followup-item__topline">
+                <span className="academic-followup-item__subject">
+                  {followUp.subject}
+                </span>
+
+                <span className="academic-followup-item__date">
+                  {formatDate(
+                    followUp.followup_date,
+                  )}
+                </span>
+              </div>
+
+              <strong>
+                {followUp.academic_period}
+              </strong>
 
               <p>
-                {followUp.academic_period}
-                {' · '}
-                {formatDate(
-                  followUp.followup_date
-                )}
+                {followUp.observations}
               </p>
             </div>
 
-            {onEdit && (
+            <div className="academic-followup-item__actions">
               <button
                 className="button button--secondary"
                 type="button"
                 onClick={() => {
-                  onEdit(followUp)
+                  setSelectedFollowUp(followUp)
                 }}
               >
-                Editar
+                Ver detalle
               </button>
-            )}
+
+              {onEdit && (
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => {
+                    onEdit(followUp)
+                  }}
+                >
+                  Editar
+                </button>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <AppModal
+        isOpen={Boolean(selectedFollowUp)}
+        title="Detalle académico"
+        subtitle={
+          'Consulta la información registrada '
+          + 'para este seguimiento.'
+        }
+        onClose={() => {
+          setSelectedFollowUp(null)
+        }}
+        size="lg"
+      >
+        {selectedFollowUp && (
+          <div className="academic-followup-detail">
+            <div className="academic-followup-detail__context">
+              <div>
+                <span>
+                  Materia o área
+                </span>
+
+                <strong>
+                  {selectedFollowUp.subject}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Período
+                </span>
+
+                <strong>
+                  {selectedFollowUp.academic_period}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Fecha
+                </span>
+
+                <strong>
+                  {formatDate(
+                    selectedFollowUp.followup_date,
+                  )}
+                </strong>
+              </div>
+            </div>
+
+            <dl className="academic-followup-details">
+              <div>
+                <dt>Observaciones</dt>
+                <dd>
+                  {selectedFollowUp.observations}
+                </dd>
+              </div>
+
+              <div>
+                <dt>Fortalezas</dt>
+                <dd>
+                  {selectedFollowUp.strengths || '—'}
+                </dd>
+              </div>
+
+              <div>
+                <dt>Áreas de mejora</dt>
+                <dd>
+                  {
+                    selectedFollowUp
+                      .areas_for_improvement
+                    || '—'
+                  }
+                </dd>
+              </div>
+
+              <div>
+                <dt>Recomendaciones</dt>
+                <dd>
+                  {
+                    selectedFollowUp
+                      .recommendations
+                    || '—'
+                  }
+                </dd>
+              </div>
+            </dl>
+
+            <p className="academic-followup-item__meta">
+              Registrado por{' '}
+              {getUserDisplayName(
+                selectedFollowUp.created_by,
+              )}
+            </p>
           </div>
-
-          <dl className="academic-followup-details">
-            <div>
-              <dt>Observaciones</dt>
-              <dd>{followUp.observations}</dd>
-            </div>
-
-            <div>
-              <dt>Fortalezas</dt>
-              <dd>
-                {followUp.strengths || '—'}
-              </dd>
-            </div>
-
-            <div>
-              <dt>Áreas de mejora</dt>
-              <dd>
-                {followUp.areas_for_improvement || '—'}
-              </dd>
-            </div>
-
-            <div>
-              <dt>Recomendaciones</dt>
-              <dd>
-                {followUp.recommendations || '—'}
-              </dd>
-            </div>
-          </dl>
-
-          <p className="academic-followup-item__meta">
-            Registrado por{' '}
-            {getUserDisplayName(
-              followUp.created_by
-            )}
-          </p>
-        </article>
-      ))}
-    </div>
+        )}
+      </AppModal>
+    </>
   )
 }
 

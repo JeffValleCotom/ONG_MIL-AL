@@ -1,0 +1,364 @@
+.milal-auth {
+  display: grid;
+  grid-template-columns:
+    minmax(360px, 0.9fr)
+    minmax(480px, 1.1fr);
+  min-height: 100vh;
+  background: var(--milal-background);
+}
+
+
+/* Panel institucional */
+
+.milal-auth__brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: clamp(2.5rem, 6vw, 5rem);
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff 0%,
+      var(--milal-green-50) 100%
+    );
+  border-right: 1px solid var(--milal-border);
+}
+
+.milal-auth__brand-content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 2.5rem;
+  width: min(100%, 520px);
+}
+
+.milal-auth__logo {
+  display: block;
+  width: clamp(180px, 18vw, 270px);
+  max-height: 190px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.milal-auth__brand-copy {
+  display: grid;
+  gap: 1rem;
+}
+
+.milal-auth__brand-eyebrow {
+  margin: 0;
+  color: var(--milal-green-700);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.milal-auth__brand-copy h1 {
+  max-width: 520px;
+  margin: 0;
+  color: var(--milal-navy-900);
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.milal-auth__brand-copy > p:last-child {
+  max-width: 480px;
+  margin: 0;
+  color: var(--milal-text-secondary);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+
+/* Curvas del logo */
+
+.milal-auth__brand-decoration {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 190px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.milal-auth__brand-curve {
+  position: absolute;
+  display: block;
+  width: 760px;
+  height: 210px;
+  border-radius: 50%;
+  transform: rotate(-8deg);
+}
+
+.milal-auth__brand-curve--green {
+  right: -260px;
+  bottom: -145px;
+  background: var(--milal-green-500);
+}
+
+.milal-auth__brand-curve--red {
+  right: -310px;
+  bottom: -183px;
+  background: var(--milal-red-500);
+}
+
+
+/* Área del formulario */
+
+.milal-auth__workspace {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 100vh;
+  padding: 2.5rem;
+}
+
+.milal-auth__card {
+  width: min(100%, 480px);
+  padding: clamp(1.6rem, 3vw, 2.4rem);
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-xl);
+  background: var(--milal-white);
+  box-shadow: var(--milal-shadow-md);
+}
+
+.milal-auth__card-header {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 1.6rem;
+}
+
+.milal-auth__eyebrow {
+  margin: 0;
+  color: var(--milal-green-700);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.milal-auth__card-header h2 {
+  margin: 0;
+  color: var(--milal-navy-900);
+  font-size: clamp(1.65rem, 3vw, 2.1rem);
+  line-height: 1.15;
+}
+
+.milal-auth__description {
+  margin: 0;
+  color: var(--milal-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.milal-auth__card-content {
+  display: grid;
+  gap: 1rem;
+}
+
+
+/* Formularios existentes */
+
+.milal-auth__card form {
+  display: grid;
+  gap: 1rem;
+}
+
+.milal-auth__card label {
+  color: var(--milal-navy-800);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.milal-auth__card input,
+.milal-auth__card select,
+.milal-auth__card textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-sm);
+  background: var(--milal-white);
+  color: var(--milal-text);
+  outline: none;
+  transition:
+    border-color var(--milal-transition-fast),
+    box-shadow var(--milal-transition-fast);
+}
+
+.milal-auth__card input {
+  padding: 0 0.85rem;
+}
+
+.milal-auth__card textarea {
+  padding: 0.8rem;
+}
+
+.milal-auth__card input:focus,
+.milal-auth__card select:focus,
+.milal-auth__card textarea:focus {
+  border-color: var(--milal-green-400);
+  box-shadow:
+    0 0 0 3px rgb(79 165 42 / 12%);
+}
+
+
+/* Botones existentes del módulo auth */
+
+.milal-auth__card .login-button,
+.milal-auth__card .password-form__submit {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--milal-primary);
+  border-radius: var(--milal-radius-sm);
+  background:
+    linear-gradient(
+      135deg,
+      var(--milal-green-500),
+      var(--milal-green-600)
+    );
+  color: var(--milal-white);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--milal-transition-fast),
+    transform var(--milal-transition-fast),
+    box-shadow var(--milal-transition-fast);
+}
+
+.milal-auth__card .login-button:hover:not(:disabled),
+.milal-auth__card .password-form__submit:hover:not(:disabled) {
+  background:
+    linear-gradient(
+      135deg,
+      var(--milal-green-600),
+      var(--milal-green-700)
+    );
+  box-shadow:
+    0 6px 16px rgb(79 165 42 / 18%);
+}
+
+.milal-auth__card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.milal-auth__card .login-link-button {
+  width: fit-content;
+  margin: 0 auto;
+  padding: 0.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--milal-green-700);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.milal-auth__card .login-link-button:hover {
+  color: var(--milal-green-800);
+  text-decoration: underline;
+}
+
+
+/* Mensajes */
+
+.milal-auth__card .login-error,
+.milal-auth__card .password-form__error {
+  border: 1px solid var(--milal-red-200);
+  border-radius: var(--milal-radius-sm);
+  background: var(--milal-red-50);
+  color: var(--milal-red-700);
+}
+
+.milal-auth__card .login-success,
+.milal-auth__card .password-form__success {
+  border: 1px solid var(--milal-green-200);
+  border-radius: var(--milal-radius-sm);
+  background: var(--milal-green-50);
+  color: var(--milal-green-800);
+}
+
+
+/* Extras */
+
+.milal-auth__notice {
+  margin: 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--milal-border-soft);
+  color: var(--milal-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.milal-auth__legal {
+  width: min(100%, 480px);
+  margin: 1rem 0 0;
+  color: var(--milal-text-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.milal-auth__mobile-brand {
+  display: none;
+}
+
+
+/* Responsive */
+
+@media (max-width: 900px) {
+  .milal-auth {
+    grid-template-columns: 1fr;
+  }
+
+  .milal-auth__brand {
+    display: none;
+  }
+
+  .milal-auth__workspace {
+    padding: 1.5rem;
+    background:
+      linear-gradient(
+        180deg,
+        var(--milal-green-50),
+        var(--milal-background) 45%
+      );
+  }
+
+  .milal-auth__mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.2rem;
+    color: var(--milal-navy-900);
+  }
+
+  .milal-auth__mobile-brand img {
+    width: 80px;
+    height: 54px;
+    object-fit: contain;
+  }
+
+  .milal-auth__mobile-brand strong {
+    font-size: 1rem;
+  }
+}
+
+
+@media (max-width: 520px) {
+  .milal-auth__workspace {
+    justify-content: flex-start;
+    padding: 1rem;
+  }
+
+  .milal-auth__card {
+    padding: 1.35rem;
+    border-radius: var(--milal-radius-lg);
+  }
+}

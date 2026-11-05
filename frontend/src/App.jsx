@@ -85,10 +85,6 @@ function App() {
     return (
       <LoginPage
         onAuthenticated={handleAuthenticated}
-        onLoggedOut={() => {
-          setAuthenticatedUser(null)
-          setSelectedSpace(null)
-        }}
       />
     )
   }
@@ -133,6 +129,7 @@ function App() {
   if (activeSpace === 'ADMINISTRADOR') {
     return (
       <UserManagementPage
+        user={authenticatedUser}
         onLogout={handleManagementLogout}
         onChangeSpace={onChangeSpace}
       />
@@ -142,6 +139,7 @@ function App() {
   if (activeSpace === 'RESPONSABLE_INSTITUCIONAL') {
     return (
       <InstitutionalHomePage
+        user={authenticatedUser}
         onLogout={handleManagementLogout}
         onChangeSpace={onChangeSpace}
       />
@@ -151,6 +149,7 @@ function App() {
   if (activeSpace === 'DOCENTE') {
     return (
       <TeacherHomePage
+        user={authenticatedUser}
         onLogout={handleManagementLogout}
         onChangeSpace={onChangeSpace}
       />
@@ -160,6 +159,7 @@ function App() {
   if (activeSpace === 'PSICOLOGO') {
     return (
       <PsychologistHomePage
+        user={authenticatedUser}
         onLogout={handleManagementLogout}
         onChangeSpace={onChangeSpace}
       />
@@ -169,6 +169,7 @@ function App() {
   if (activeSpace === 'TERAPEUTA') {
     return (
       <TherapistHomePage
+        user={authenticatedUser}
         onLogout={handleManagementLogout}
         onChangeSpace={onChangeSpace}
       />

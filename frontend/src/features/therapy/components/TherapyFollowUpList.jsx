@@ -1,3 +1,6 @@
+import { useState } from 'react'
+
+
 function formatDate(value) {
   if (!value) {
     return '—'
@@ -34,75 +37,158 @@ function TherapyFollowUpList({
   followups,
   onEdit,
 }) {
+  const [
+    expandedFollowUpId,
+    setExpandedFollowUpId,
+  ] = useState(null)
+
   if (followups.length === 0) {
     return (
-      <div className="students-empty">
-        No hay seguimientos terapéuticos registrados.
+      <div className="therapy-followup-empty">
+        <span
+          className="therapy-followup-empty__icon"
+          aria-hidden="true"
+        >
+          ○
+        </span>
+
+        <strong>
+          Sin sesiones registradas
+        </strong>
+
+        <p>
+          Los seguimientos terapéuticos aparecerán
+          aquí cuando sean registrados.
+        </p>
       </div>
     )
   }
 
   return (
     <div className="therapy-followup-list">
-      {followups.map((followUp) => (
-        <article
-          className="therapy-followup-item"
-          key={followUp.id}
-        >
-          <div className="therapy-followup-item__header">
-            <div>
-              <h3>{followUp.therapy_area}</h3>
+      {followups.map((followUp) => {
+        const isExpanded =
+          expandedFollowUpId === followUp.id
 
-              <p>
-                {formatDate(followUp.followup_date)}
-              </p>
-            </div>
+        return (
+          <article
+            className={
+              isExpanded
+                ? (
+                    'therapy-followup-item '
+                    + 'therapy-followup-item--expanded'
+                  )
+                : 'therapy-followup-item'
+            }
+            key={followUp.id}
+          >
+            <div className="therapy-followup-item__summary">
+              <span
+                className="therapy-followup-item__marker"
+                aria-hidden="true"
+              >
+                ✓
+              </span>
 
-            {onEdit && (
+              <div className="therapy-followup-item__date">
+                <strong>
+                  {formatDate(
+                    followUp.followup_date,
+                  )}
+                </strong>
+
+                <span>
+                  Sesión terapéutica
+                </span>
+              </div>
+
+              <div className="therapy-followup-item__main">
+                <strong>
+                  {followUp.therapy_area}
+                </strong>
+
+                <span>
+                  {followUp.objectives}
+                </span>
+              </div>
+
               <button
-                className="button button--secondary"
+                className={
+                  'therapy-followup-item__view '
+                  + 'button button--secondary'
+                }
                 type="button"
                 onClick={() => {
-                  onEdit(followUp)
+                  setExpandedFollowUpId(
+                    isExpanded
+                      ? null
+                      : followUp.id,
+                  )
                 }}
               >
-                Editar
+                {isExpanded
+                  ? 'Ocultar'
+                  : 'Ver'}
               </button>
+            </div>
+
+            {isExpanded && (
+              <div className="therapy-followup-item__details">
+                <dl className="therapy-followup-details">
+                  <div>
+                    <dt>Objetivos</dt>
+                    <dd>
+                      {followUp.objectives}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>Actividades realizadas</dt>
+                    <dd>
+                      {followUp.activities || '—'}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>Notas de progreso</dt>
+                    <dd>
+                      {followUp.progress_notes}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>Recomendaciones</dt>
+                    <dd>
+                      {followUp.recommendations || '—'}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="therapy-followup-item__footer">
+                  <p className="therapy-followup-item__meta">
+                    Registrado por{' '}
+                    {getUserDisplayName(
+                      followUp.created_by,
+                    )}
+                  </p>
+
+                  {onEdit && (
+                    <button
+                      className="button button--secondary"
+                      type="button"
+                      onClick={() => {
+                        onEdit(followUp)
+                      }}
+                    >
+                      Editar seguimiento
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
-          </div>
-
-          <dl className="therapy-followup-details">
-            <div>
-              <dt>Objetivos</dt>
-              <dd>{followUp.objectives}</dd>
-            </div>
-
-            <div>
-              <dt>Actividades realizadas</dt>
-              <dd>{followUp.activities || '—'}</dd>
-            </div>
-
-            <div>
-              <dt>Notas de progreso</dt>
-              <dd>{followUp.progress_notes}</dd>
-            </div>
-
-            <div>
-              <dt>Recomendaciones</dt>
-              <dd>
-                {followUp.recommendations || '—'}
-              </dd>
-            </div>
-          </dl>
-
-          <p className="therapy-followup-item__meta">
-            Registrado por{' '}
-            {getUserDisplayName(
-              followUp.created_by
-            )}
-          </p>
-        </article>
-      ))}
+          </article>
+        )
+      })}
     </div>
   )
 }

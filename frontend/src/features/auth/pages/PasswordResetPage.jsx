@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import AuthLayout
+  from '../../../components/auth/AuthLayout'
 import {
   confirmPasswordRecovery,
   verifyPasswordRecovery,
@@ -144,47 +146,37 @@ function PasswordResetPage() {
 
   if (isVerifying) {
     return (
-      <main className="login-page">
-        <section className="login-card">
-          <header className="login-card__header">
-            <p className="login-card__eyebrow">
-              ONG MIL-AL
-            </p>
-
-            <h1>Verificando enlace</h1>
-
-            <p>
-              Estamos comprobando que el enlace
-              de recuperación sea válido.
-            </p>
-          </header>
-        </section>
-      </main>
+      <AuthLayout
+        eyebrow="Recuperación de acceso"
+        title="Verificando enlace"
+        description={
+          'Estamos comprobando que el enlace '
+          + 'de recuperación sea válido.'
+        }
+      >
+        <p className="milal-auth__notice">
+          Verificando credenciales de recuperación.
+        </p>
+      </AuthLayout>
     )
   }
 
   return (
-    <main className="login-page">
-      <section className="login-card">
-        <header className="login-card__header">
-          <p className="login-card__eyebrow">
-            ONG MIL-AL
-          </p>
-
-          <h1>Restablecer contraseña</h1>
-
-          <p>
-            {isValid
-              ? (
+     <AuthLayout
+        eyebrow="Recuperación de acceso"
+        title="Restablecer contraseña"
+        description={
+          isValid
+            ? (
                 'Ingresa una nueva contraseña '
                 + 'para tu cuenta.'
               )
-              : (
+            : (
                 'El proceso de recuperación '
                 + 'no puede continuar.'
-              )}
-          </p>
-        </header>
+              )
+        }
+      >
 
         {isValid && !success && (
           <form
@@ -277,8 +269,7 @@ function PasswordResetPage() {
             Volver al inicio de sesión
           </button>
         )}
-      </section>
-    </main>
+    </AuthLayout>
   )
 }
 

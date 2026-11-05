@@ -1,103 +1,333 @@
+/* Psychological follow-up form */
+
+.psychological-followup-form {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+}
+
+.psychological-followup-form .form-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.psychological-followup-form .form-field {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.psychological-followup-form .form-field label {
+  color: var(--milal-navy-900);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.psychological-followup-form input,
+.psychological-followup-form select,
 .psychological-followup-form textarea {
   width: 100%;
   box-sizing: border-box;
-  resize: vertical;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  padding: 0.7rem 0.8rem;
-  color: #0f172a;
-  background: #ffffff;
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-sm);
+  padding: 0.72rem 0.8rem;
+  background: var(--milal-white);
+  color: var(--milal-text);
   font: inherit;
+  font-size: 0.82rem;
+  transition:
+    border-color var(--milal-transition-fast),
+    box-shadow var(--milal-transition-fast),
+    background var(--milal-transition-fast);
 }
 
+.psychological-followup-form input {
+  min-height: 42px;
+}
+
+.psychological-followup-form textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.psychological-followup-form input::placeholder,
+.psychological-followup-form textarea::placeholder {
+  color: var(--milal-text-muted);
+}
+
+.psychological-followup-form input:focus,
+.psychological-followup-form select:focus,
 .psychological-followup-form textarea:focus {
-  outline: 2px solid #93c5fd;
-  outline-offset: 1px;
-  border-color: #2563eb;
+  border-color: var(--milal-green-400);
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgb(79 165 42 / 12%);
 }
 
+.psychological-followup-form input:disabled,
+.psychological-followup-form select:disabled,
 .psychological-followup-form textarea:disabled {
   cursor: not-allowed;
-  background: #f8fafc;
+  background: var(--milal-gray-50);
+  color: var(--milal-text-muted);
+}
+
+.psychological-followup-form .form-message {
+  margin: 0;
+}
+
+.psychological-followup-form .form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--milal-border);
+}
+
+.psychological-followup-form
+.form-actions .button {
+  min-width: 120px;
+  min-height: 40px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.psychological-followup-form
+.form-actions .button--primary {
+  border-color: var(--milal-green-600);
+  background: var(--milal-green-600);
+  color: var(--milal-white);
+}
+
+.psychological-followup-form
+.form-actions .button--primary:hover:not(:disabled) {
+  border-color: var(--milal-green-700);
+  background: var(--milal-green-700);
+}
+
+@media (max-width: 720px) {
+  .psychological-followup-form .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .psychological-followup-form .form-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .psychological-followup-form
+  .form-actions .button {
+    width: 100%;
+  }
 }
 
 .psychological-followup-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
 }
 
 .psychological-followup-item {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--milal-border);
 }
 
 .psychological-followup-item:last-child {
   border-bottom: 0;
 }
 
-.psychological-followup-item__header {
+.psychological-followup-item__main {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+}
+
+.psychological-followup-item__topline {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
 }
 
-.psychological-followup-item__header h3 {
+.psychological-followup-item__badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--milal-radius-pill);
+  background: var(--milal-green-50);
+  color: var(--milal-green-700);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.psychological-followup-item__date {
+  color: var(--milal-text-muted);
+  font-size: 0.74rem;
+}
+
+.psychological-followup-item__main > strong {
+  color: var(--milal-navy-900);
+  font-size: 0.82rem;
+}
+
+.psychological-followup-item__main > p {
+  display: -webkit-box;
   margin: 0;
-  color: #0f172a;
-  font-size: 1rem;
+  overflow: hidden;
+  color: var(--milal-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.psychological-followup-item__header p {
-  margin: 0.25rem 0 0;
-  color: #64748b;
+.psychological-followup-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
-.psychological-followup-details {
+.psychological-followup-item__actions .button {
+  min-height: 36px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.74rem;
+}
+
+
+.psychological-followup-detail {
+  display: grid;
+  gap: 1rem;
+}
+
+.psychological-followup-detail__context {
   display: grid;
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+.psychological-followup-detail__context > div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem;
+  border: 1px solid var(--milal-green-200);
+  border-radius: var(--milal-radius-sm);
+  background: var(--milal-green-50);
+}
+
+.psychological-followup-detail__context span {
+  color: var(--milal-green-700);
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.psychological-followup-detail__context strong {
+  color: var(--milal-navy-900);
+  font-size: 0.8rem;
+}
+
+
+.psychological-followup-details {
+  display: grid;
+  gap: 0.75rem;
   margin: 0;
 }
 
-.psychological-followup-details div {
-  min-width: 0;
+.psychological-followup-details > div {
+  padding: 0.9rem;
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-sm);
+  background: var(--milal-white);
 }
 
 .psychological-followup-details dt {
-  margin-bottom: 0.3rem;
-  color: #64748b;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+  color: var(--milal-text-muted);
+  font-size: 0.68rem;
+  font-weight: 750;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .psychological-followup-details dd {
   margin: 0;
-  color: #334155;
-  white-space: pre-wrap;
+  color: var(--milal-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.55;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .psychological-followup-item__meta {
-  margin: 1.25rem 0 0;
-  color: #64748b;
-  font-size: 0.8rem;
+  margin: 0;
+  color: var(--milal-text-muted);
+  font-size: 0.72rem;
 }
 
+
+.psychological-followup-empty {
+  display: flex;
+  min-height: 180px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.psychological-followup-empty > span {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--milal-green-50);
+  color: var(--milal-green-700);
+}
+
+.psychological-followup-empty strong {
+  color: var(--milal-navy-900);
+}
+
+.psychological-followup-empty p {
+  max-width: 330px;
+  margin: 0;
+  color: var(--milal-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+
 @media (max-width: 720px) {
-  .psychological-followup-item__header {
-    flex-direction: column;
+  .psychological-followup-item {
+    grid-template-columns: 1fr;
   }
 
-  .psychological-followup-item__header .button {
-    width: 100%;
+  .psychological-followup-item__actions {
+    justify-content: flex-start;
   }
 
-  .psychological-followup-details {
+  .psychological-followup-item__actions .button {
+    flex: 1;
+  }
+
+  .psychological-followup-detail__context {
     grid-template-columns: 1fr;
   }
 }

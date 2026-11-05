@@ -116,7 +116,7 @@ function StudentTable({
                   <div className="student-actions">
                     {onViewRecord && (
                       <button
-                        className="button button--primary"
+                        className="milal-button milal-button--primary"
                         type="button"
                         onClick={() => {
                           onViewRecord(student)
@@ -129,7 +129,7 @@ function StudentTable({
                     {canManageStudents && (
                       <>
                         <button
-                          className="button button--secondary"
+                          className="milal-button milal-button--secondary"
                           type="button"
                           onClick={() => {
                             onManageAssignments?.(student)
@@ -139,7 +139,7 @@ function StudentTable({
                         </button>
 
                         <button
-                          className="button button--secondary"
+                          className="milal-button milal-button--secondary"
                           type="button"
                           onClick={() => {
                             onEdit?.(student)
@@ -151,8 +151,8 @@ function StudentTable({
                         <button
                           className={
                             student.is_active
-                              ? 'button button--danger'
-                              : 'button button--primary'
+                              ? 'milal-button milal-button--danger'
+                              : 'milal-button milal-button--primary'
                           }
                           type="button"
                           onClick={() => {

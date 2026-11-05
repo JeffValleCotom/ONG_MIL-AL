@@ -1,0 +1,99 @@
+:root {
+  /* ONG MIL-AL brand */
+  --milal-green-50: #f2faee;
+  --milal-green-100: #e3f5dc;
+  --milal-green-200: #c7eab9;
+  --milal-green-300: #9bd87f;
+  --milal-green-400: #70c34d;
+  --milal-green-500: #4fa52a;
+  --milal-green-600: #3b8c1d;
+  --milal-green-700: #317019;
+  --milal-green-800: #2b591a;
+  --milal-green-900: #254a19;
+
+  --milal-red-50: #fff1f2;
+  --milal-red-100: #ffe1e3;
+  --milal-red-200: #ffc8cc;
+  --milal-red-300: #ffa0a6;
+  --milal-red-400: #ff666f;
+  --milal-red-500: #f72b36;
+  --milal-red-600: #df1520;
+  --milal-red-700: #bb1019;
+
+  --milal-navy-50: #f5f7fa;
+  --milal-navy-100: #e9edf3;
+  --milal-navy-200: #d6dde8;
+  --milal-navy-300: #aebaca;
+  --milal-navy-400: #7f8da3;
+  --milal-navy-500: #5e6d84;
+  --milal-navy-600: #46546a;
+  --milal-navy-700: #344054;
+  --milal-navy-800: #1f2a3d;
+  --milal-navy-900: #111b2e;
+
+  --milal-white: #ffffff;
+
+  --milal-gray-25: #fcfcfd;
+  --milal-gray-50: #f8fafc;
+  --milal-gray-100: #f1f5f9;
+  --milal-gray-200: #e2e8f0;
+  --milal-gray-300: #cbd5e1;
+  --milal-gray-400: #94a3b8;
+  --milal-gray-500: #64748b;
+  --milal-gray-600: #475569;
+  --milal-gray-700: #334155;
+  --milal-gray-800: #1e293b;
+  --milal-gray-900: #0f172a;
+
+  --milal-warning-50: #fffbea;
+  --milal-warning-100: #fff3c4;
+  --milal-warning-500: #e7a609;
+  --milal-warning-700: #a96f00;
+
+  /* Semantic colors */
+  --milal-primary: var(--milal-green-500);
+  --milal-primary-hover: var(--milal-green-600);
+  --milal-primary-active: var(--milal-green-700);
+
+  --milal-danger: var(--milal-red-500);
+  --milal-danger-hover: var(--milal-red-600);
+
+  --milal-background: #f4f7fb;
+  --milal-surface: var(--milal-white);
+  --milal-surface-soft: var(--milal-gray-50);
+
+  --milal-text: var(--milal-navy-900);
+  --milal-text-secondary: var(--milal-gray-600);
+  --milal-text-muted: var(--milal-gray-500);
+
+  --milal-border: #dfe5ec;
+  --milal-border-soft: #edf1f5;
+
+  /* Layout */
+  --milal-sidebar-width: 264px;
+  --milal-header-height: 82px;
+
+  /* Shape */
+  --milal-radius-sm: 8px;
+  --milal-radius-md: 12px;
+  --milal-radius-lg: 16px;
+  --milal-radius-xl: 20px;
+  --milal-radius-pill: 999px;
+
+  /* Shadows */
+  --milal-shadow-xs:
+    0 1px 2px rgb(15 23 42 / 4%);
+
+  --milal-shadow-sm:
+    0 2px 8px rgb(15 23 42 / 6%);
+
+  --milal-shadow-md:
+    0 8px 24px rgb(15 23 42 / 8%);
+
+  --milal-shadow-lg:
+    0 16px 40px rgb(15 23 42 / 12%);
+
+  /* Transitions */
+  --milal-transition-fast: 150ms ease;
+  --milal-transition: 220ms ease;
+}

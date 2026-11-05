@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import AppShell from '../../../components/layout/AppShell'
 import ConfirmDialog from '../../../components/ConfirmDialog'
 import Modal from '../../../components/Modal'
 import '../../../components/Modal.css'
@@ -23,6 +24,17 @@ import {
   updateStudent,
 } from '../services/studentService'
 import './StudentManagementPage.css'
+
+const ROLE_LABELS = {
+  RESPONSABLE_INSTITUCIONAL:
+    'Gestión institucional',
+  DOCENTE:
+    'Espacio docente',
+  PSICOLOGO:
+    'Espacio psicológico',
+  TERAPEUTA:
+    'Espacio terapéutico',
+}
 
 function getStudentErrorMessage(error) {
   const data = error?.data
@@ -65,6 +77,7 @@ function getStudentErrorMessage(error) {
 
 
 function StudentManagementPage({
+  user,
   onLogout,
   onChangeSpace,
   canManageStudents = false,
@@ -345,104 +358,115 @@ function StudentManagementPage({
     ? 'desactivar'
     : 'activar'
 
+  const roleLabel =
+    ROLE_LABELS[studentContext]
+    || pageEyebrow
+    || 'ONG MIL-AL'
+
+  const activeStudentCount = students.filter(
+    (student) => student.is_active,
+  ).length
+
+  const inactiveStudentCount =
+    students.length - activeStudentCount
+
+  const navigationItems = [
+    {
+      id: 'students',
+      label: 'Estudiantes',
+      icon: 'students',
+      active:
+        !showReports
+        && !recordStudent,
+      onClick: () => {
+        setShowReports(false)
+        setRecordStudent(null)
+      },
+    },
+    {
+      id: 'reports',
+      label: 'Reportes',
+      icon: 'reports',
+      active: showReports,
+      onClick: () => {
+        setRecordStudent(null)
+        setShowReports(true)
+      },
+    },
+  ]
+
     if (showReports) {
       return (
-        <ReportManagementPage
-          students={students}
-          studentContext={studentContext}
-          onBack={() => {
-            setShowReports(false)
-          }}
-          onLogout={onLogout}
+        <AppShell
+          title="Reportes"
+          subtitle={
+            'Generación y consulta de reportes '
+            + 'de seguimiento'
+          }
+          user={user}
+          roleLabel={roleLabel}
+          navigationItems={navigationItems}
           onChangeSpace={onChangeSpace}
-        />
+          onLogout={onLogout}
+        >
+          <ReportManagementPage
+            students={students}
+            studentContext={studentContext}
+            embedded
+            onBack={() => {
+              setShowReports(false)
+            }}
+            onLogout={onLogout}
+            onChangeSpace={onChangeSpace}
+          />
+        </AppShell>
       )
     }
 
     if (recordStudent) {
+      const recordName = [
+        recordStudent.first_name,
+        recordStudent.last_name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+
       return (
-        <StudentRecordPage
-          studentId={recordStudent.id}
-          studentContext={studentContext}
-          onBack={handleRecordBack}
-        />
+        <AppShell
+          title="Expediente del estudiante"
+          subtitle={
+            `${recordName} · `
+            + recordStudent.institutional_code
+          }
+          user={user}
+          roleLabel={roleLabel}
+          navigationItems={navigationItems}
+          onChangeSpace={onChangeSpace}
+          onLogout={onLogout}
+        >
+          <StudentRecordPage
+            studentId={recordStudent.id}
+            studentContext={studentContext}
+            onBack={handleRecordBack}
+          />
+        </AppShell>
       )
     }
 
   return (
-    <main className="students-page">
-      <header className="students-page__header">
-        <div>
-          <p className="students-page__eyebrow">
-            {pageEyebrow}
-          </p>
-
-          <h1>
-            {pageTitle}
-          </h1>
-
-          <p className="students-page__description">
-            {pageDescription || (
-              canManageStudents
-                ? (
-                    'Consulta y gestiona la información '
-                    + 'general de los estudiantes '
-                    + 'atendidos por MIL-AL.'
-                  )
-                : (
-                    'Consulta la información general de '
-                    + 'los estudiantes asignados.'
-                  )
-            )}
-          </p>
-        </div>
-
-        <div className="students-page__actions">
-          <button
-                className="button button--secondary"
-                type="button"
-                onClick={() => {
-                  setShowReports(true)
-                }}
-                disabled={
-                  isSubmitting
-                  || isUpdating
-                  || isChangingStatus
-                  || isLoading
-                }
-              >
-                Reportes
-              </button>
-          {onChangeSpace && (
-              <button
-                className="button button--secondary"
-                type="button"
-                onClick={onChangeSpace}
-                disabled={
-                  isSubmitting
-                  || isUpdating
-                  || isChangingStatus
-                }
-              >
-                Cambiar espacio
-              </button>
-
-            )}
-
-          <button
-            className="button button--secondary"
-            type="button"
-            onClick={onLogout}
-            disabled={
-              isSubmitting
-              || isUpdating
-              || isChangingStatus
-            }
-          >
-            Cerrar sesión
-          </button>
-        </div>
-      </header>
+    <AppShell
+      title={pageTitle}
+      subtitle={
+        pageDescription
+        || 'Gestión y seguimiento de estudiantes'
+      }
+      user={user}
+      roleLabel={roleLabel}
+      navigationItems={navigationItems}
+      onChangeSpace={onChangeSpace}
+      onLogout={onLogout}
+    >
+      <main className="students-page">
 
       {success && (
         <div
@@ -462,18 +486,91 @@ function StudentManagementPage({
         </div>
       )}
 
+      <div className="students-overview">
+        <article className="students-overview__item">
+          <span className="students-overview__icon">
+            ◫
+          </span>
+
+          <div>
+            <strong>
+              {students.length}
+            </strong>
+
+            <span>
+              {canManageStudents
+                ? 'Estudiantes registrados'
+                : 'Estudiantes asignados'}
+            </span>
+          </div>
+        </article>
+
+        <article className="students-overview__item">
+          <span className="students-overview__icon">
+            ✓
+          </span>
+
+          <div>
+            <strong>
+              {activeStudentCount}
+            </strong>
+
+            <span>
+              Estudiantes activos
+            </span>
+          </div>
+        </article>
+
+        <article
+          className={
+            'students-overview__item '
+            + 'students-overview__item--neutral'
+          }
+        >
+          <span className="students-overview__icon">
+            ○
+          </span>
+
+          <div>
+            <strong>
+              {inactiveStudentCount}
+            </strong>
+
+            <span>
+              Estudiantes inactivos
+            </span>
+          </div>
+        </article>
+      </div>
+
       <section
         className="students-card"
         aria-labelledby="students-list-title"
       >
         <div className="students-card__header">
-          <h2 id="students-list-title">
-            Estudiantes registrados
-          </h2>
+          <div>
+            <p className="students-card__eyebrow">
+              Directorio estudiantil
+            </p>
 
-          <p>
-            {students.length} estudiantes encontrados
-          </p>
+            <h2 id="students-list-title">
+              {canManageStudents
+                ? 'Estudiantes registrados'
+                : 'Estudiantes asignados'}
+            </h2>
+
+            <p>
+              Consulta los estudiantes disponibles
+              en este espacio de trabajo.
+            </p>
+          </div>
+
+          <span className="students-card__count">
+            {students.length}{' '}
+            {students.length === 1
+              ? 'estudiante'
+              : 'estudiantes'}
+          </span>
         </div>
 
         <div className="students-card__content">
@@ -525,14 +622,14 @@ function StudentManagementPage({
 
             <div className="student-filters__actions">
               <button
-                className="button button--primary"
+                className="milal-button milal-button--primary"
                 type="submit"
               >
                 Buscar
               </button>
 
               <button
-                className="button button--secondary"
+                className="milal-button milal-button--secondary"
                 type="button"
                 onClick={handleClearFilters}
               >
@@ -650,6 +747,7 @@ function StudentManagementPage({
         />
       )}
     </main>
+    </AppShell>
   )
 }
 
