@@ -19,8 +19,10 @@ import PasswordChangeForm
 import {
   changePassword,
 } from '../../auth/services/authService'
+import AppShell from '../../../components/layout/AppShell'
 
 function UserManagementPage({
+  user,
   onLogout,
   onChangeSpace,
 }) {
@@ -243,59 +245,40 @@ async function handlePasswordChangeSubmit(
   }
 }
 
+  const navigationItems = [
+    {
+      id: 'users',
+      label: 'Usuarios',
+      icon: 'users',
+      active: true,
+    },
+    {
+      id: 'create-user',
+      label: 'Nuevo usuario',
+      icon: 'user-plus',
+      secondary: true,
+      onClick: openCreateForm,
+    },
+    {
+      id: 'change-password',
+      label: 'Cambiar contraseña',
+      icon: 'key',
+      secondary: true,
+      onClick: openPasswordChange,
+    },
+  ]
+
   return (
+    <AppShell
+    title="Gestión de usuarios"
+    subtitle="Usuarios, roles y cuentas institucionales"
+    user={user}
+    roleLabel="Administración"
+    navigationItems={navigationItems}
+    onChangeSpace={onChangeSpace}
+    onLogout={onLogout}
+  >
     <main className="users-page">
-      <header className="users-page__header">
-        <div>
-          <p className="users-page__eyebrow">
-            Administración
-          </p>
-
-          <h1>
-            Gestión de usuarios y roles
-          </h1>
-
-          <p className="users-page__description">
-            Administra las cuentas institucionales,
-            sus roles y su estado dentro de la
-            plataforma MIL-AL.
-          </p>
-        </div>
-
-        <div className="users-page__actions">
-          <button
-            className="button button--primary"
-            type="button"
-            onClick={openCreateForm}
-          >
-            Nuevo usuario
-          </button>
-          {onChangeSpace && (
-            <button
-              className="button button--secondary"
-              type="button"
-              onClick={onChangeSpace}
-            >
-              Cambiar espacio
-            </button>
-          )}
-          <button
-            className="button button--secondary"
-            type="button"
-            onClick={openPasswordChange}
-          >
-            Cambiar mi contraseña
-          </button>
-
-          <button
-            className="button button--secondary"
-            type="button"
-            onClick={onLogout}
-          >
-            Cerrar sesión
-          </button>
-        </div>
-      </header>
 
       <section
         className="users-card"
@@ -408,6 +391,7 @@ async function handlePasswordChangeSubmit(
       </Modal>
     )}
     </main>
+    </AppShell>
   )
 }
 

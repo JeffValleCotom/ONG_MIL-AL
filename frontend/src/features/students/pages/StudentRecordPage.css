@@ -331,3 +331,876 @@ tbody tr:last-child td {
     width: 100%;
   }
 }
+
+/* New application shell integration */
+
+.milal-app-shell__content .student-record-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+
+/* Student identity */
+
+.student-record-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-lg);
+  background: var(--milal-white);
+  box-shadow: var(--milal-shadow-sm);
+}
+
+.student-record-hero__identity {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 1rem;
+}
+
+.student-record-hero__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  border: 3px solid var(--milal-green-100);
+  border-radius: 50%;
+  background: var(--milal-green-50);
+  color: var(--milal-green-700);
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.student-record-hero__name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.student-record-hero h2 {
+  margin: 0;
+  color: var(--milal-navy-900);
+  font-size: 1.15rem;
+}
+
+.student-record-hero p {
+  margin: 0.25rem 0 0;
+  color: var(--milal-text-secondary);
+  font-size: 0.85rem;
+}
+
+
+/* Status */
+
+.student-record-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--milal-radius-pill);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.student-record-status--active {
+  background: var(--milal-green-100);
+  color: var(--milal-green-800);
+}
+
+.student-record-status--inactive {
+  background: var(--milal-red-100);
+  color: var(--milal-red-700);
+}
+
+
+/* Tabs */
+
+.student-record-tabs {
+  display: flex;
+  gap: 0.35rem;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.35rem;
+  overflow-x: auto;
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-md);
+  background: var(--milal-white);
+  box-shadow: var(--milal-shadow-xs);
+  scrollbar-width: thin;
+}
+
+.student-record-tab {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0.55rem 0.85rem;
+  border: 0;
+  border-radius: var(--milal-radius-sm);
+  background: transparent;
+  color: var(--milal-text-secondary);
+  font-size: 0.84rem;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--milal-transition-fast),
+    color var(--milal-transition-fast),
+    box-shadow var(--milal-transition-fast);
+}
+
+.student-record-tab:hover {
+  background: var(--milal-green-50);
+  color: var(--milal-green-700);
+}
+
+.student-record-tab--active {
+  background:
+    linear-gradient(
+      135deg,
+      var(--milal-green-500),
+      var(--milal-green-600)
+    );
+  color: var(--milal-white);
+  box-shadow:
+    0 4px 10px rgb(79 165 42 / 18%);
+}
+
+.student-record-tab--active:hover {
+  background:
+    linear-gradient(
+      135deg,
+      var(--milal-green-500),
+      var(--milal-green-700)
+    );
+  color: var(--milal-white);
+}
+
+
+/* Cards inside shell */
+
+.milal-app-shell__content .student-record-card {
+  border-color: var(--milal-border);
+  border-radius: var(--milal-radius-lg);
+  box-shadow: var(--milal-shadow-sm);
+}
+
+
+/* Responsive */
+
+@media (max-width: 720px) {
+  .student-record-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .student-record-hero > .button {
+    width: 100%;
+  }
+
+  .student-record-tabs {
+    border-radius: var(--milal-radius-sm);
+  }
+}
+
+/* Tab content */
+
+.student-record-tab-content {
+  min-width: 0;
+}
+
+.student-record-tab-content--summary {
+  display: grid;
+  grid-template-columns:
+    minmax(320px, 1.15fr)
+    minmax(260px, 0.85fr)
+    minmax(260px, 0.85fr);
+  grid-template-areas:
+    "general family assignments"
+    "general documents status";
+  grid-template-rows:
+    minmax(250px, auto)
+    minmax(190px, auto);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+
+/* Summary cards */
+.student-record-summary-card {
+  margin-top: 0 !important;
+}
+
+.student-record-tab-content--summary
+.student-record-summary-card {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+.student-record-tab-content--summary
+.student-record-summary-card--family,
+.student-record-tab-content--summary
+.student-record-summary-card--assignments,
+.student-record-tab-content--summary
+.student-record-summary-card--documents,
+.student-record-tab-content--summary
+.student-record-summary-card--status {
+  display: flex;
+  flex-direction: column;
+}
+
+.student-record-documents-summary {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+}
+
+.student-record-documents-summary__count {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.student-record-documents-summary__icon {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--milal-radius-sm);
+  background: var(--milal-green-50);
+  color: var(--milal-green-700);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.student-record-documents-summary__count > div {
+  min-width: 0;
+}
+
+.student-record-documents-summary__count strong {
+  display: block;
+  color: var(--milal-navy-900);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.student-record-documents-summary__count p {
+  margin: 0.25rem 0 0;
+  color: var(--milal-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.student-record-documents-summary > .button {
+  flex: 0 0 auto;
+}
+
+.student-record-summary-card--general {
+  grid-area: general;
+}
+
+.student-record-summary-card--family {
+  grid-area: family;
+}
+
+.student-record-summary-card--assignments {
+  grid-area: assignments;
+}
+
+.student-record-summary-card--documents {
+  grid-area: documents;
+}
+
+.student-record-summary-card--status {
+  grid-area: status;
+}
+
+/* Cleaner summary card headers */
+
+.student-record-summary-card
+.student-record-card__header {
+  padding: 1.15rem 1.2rem;
+}
+
+.student-record-summary-card
+.student-record-card__header h2 {
+  color: var(--milal-navy-900);
+  font-size: 1rem;
+}
+
+.student-record-summary-card
+.student-record-card__header p {
+  color: var(--milal-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+
+/* General information */
+
+.student-record-summary-card--general
+.student-record-grid {
+  grid-template-columns: 1fr;
+}
+
+.student-record-summary-card--general
+.student-record-grid > div {
+  display: grid;
+  grid-template-columns: 145px minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.9rem 1.2rem;
+  border-right: 0;
+}
+
+.student-record-summary-card--general
+.student-record-grid dt {
+  margin: 0;
+}
+
+.student-record-summary-card--general
+.student-record-grid dd {
+  font-weight: 600;
+}
+
+
+/* Compact family cards */
+
+.student-record-summary-card--family
+.student-family-list {
+  padding: 0.9rem;
+}
+
+.student-record-summary-card--family
+.student-family-member {
+  box-shadow: none;
+}
+
+
+/* Compact documents */
+
+.student-record-summary-card--documents
+.student-document-list {
+  padding: 0.9rem;
+}
+
+
+/* Tracking status */
+
+.student-record-summary-status {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem 1.2rem 0;
+}
+
+.student-record-summary-status__eyebrow {
+  margin: 0 0 0.3rem;
+  color: var(--milal-text-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-record-summary-status h2 {
+  margin: 0;
+  color: var(--milal-navy-900);
+  font-size: 1rem;
+}
+
+.student-record-summary-status__badge {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--milal-radius-pill);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.student-record-summary-status__badge--active {
+  background: var(--milal-green-100);
+  color: var(--milal-green-800);
+}
+
+.student-record-summary-status__badge--inactive {
+  background: var(--milal-red-100);
+  color: var(--milal-red-700);
+}
+
+.student-record-summary-status__copy {
+  margin: 0;
+  padding: 1rem 1.2rem 1.2rem;
+  color: var(--milal-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+
+/* Summary responsive */
+
+@media (max-width: 1180px) {
+  .student-record-tab-content--summary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "general general"
+      "family assignments"
+      "documents status";
+    grid-template-rows: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .student-record-tab-content--summary {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "general"
+      "family"
+      "assignments"
+      "documents"
+      "status";
+  }
+
+  .student-record-summary-card--general
+  .student-record-grid > div {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+}
+
+.student-record-summary-empty {
+  display: flex;
+  min-height: 150px;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 1.25rem;
+  color: var(--milal-text-secondary);
+  text-align: center;
+}
+
+.student-record-summary-empty__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 0.2rem;
+  border-radius: 50%;
+  background: var(--milal-green-50);
+  color: var(--milal-green-700);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.student-record-summary-empty strong {
+  color: var(--milal-navy-900);
+  font-size: 0.88rem;
+}
+
+.student-record-summary-empty p {
+  max-width: 250px;
+  margin: 0;
+  color: var(--milal-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.student-record-summary-empty .button {
+  margin-top: 0.55rem;
+}
+
+.student-record-tab-content--summary
+.button--primary {
+  border-color: var(--milal-green-600);
+  background: var(--milal-green-600);
+  color: var(--milal-white);
+}
+
+.student-record-tab-content--summary
+.button--primary:hover:not(:disabled) {
+  border-color: var(--milal-green-700);
+  background: var(--milal-green-700);
+}
+
+/* Shared record section heading */
+
+.student-record-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.student-record-section-heading__eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--milal-green-700);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.student-record-section-heading h2 {
+  margin: 0;
+  color: var(--milal-navy-900);
+  font-size: 1.25rem;
+}
+
+.student-record-section-heading > div > p:last-child {
+  margin: 0.4rem 0 0;
+  color: var(--milal-text-secondary);
+  font-size: 0.82rem;
+}
+
+
+/* Therapy */
+
+.student-record-therapy {
+  min-width: 0;
+}
+
+.student-record-therapy__stats {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.student-record-mini-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 76px;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-md);
+  background: var(--milal-white);
+  box-shadow: var(--milal-shadow-xs);
+}
+
+.student-record-mini-stat__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: var(--milal-radius-sm);
+  background: var(--milal-green-50);
+  color: var(--milal-green-700);
+  font-weight: 800;
+}
+
+.student-record-mini-stat > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.student-record-mini-stat strong {
+  color: var(--milal-navy-900);
+  font-size: 0.95rem;
+}
+
+.student-record-mini-stat span:last-child {
+  color: var(--milal-text-muted);
+  font-size: 0.72rem;
+}
+
+.student-record-mini-stat--status {
+  border-color: var(--milal-green-200);
+  background: var(--milal-green-50);
+}
+
+.student-record-therapy__workspace {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.student-record-therapy__message {
+  margin: 1rem 1.15rem 0;
+}
+
+.student-record-therapy
+.student-record-section-heading > .button--primary {
+  flex: 0 0 auto;
+  border-color: var(--milal-green-600);
+  background: var(--milal-green-600);
+  color: var(--milal-white);
+}
+
+.student-record-therapy
+.student-record-section-heading > .button--primary:hover:not(:disabled) {
+  border-color: var(--milal-green-700);
+  background: var(--milal-green-700);
+}
+
+
+@media (max-width: 1050px) {
+  .student-record-therapy__workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+@media (max-width: 720px) {
+  .student-record-therapy__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Evaluations */
+
+.student-record-evaluations {
+  min-width: 0;
+}
+
+.student-record-evaluations
+.student-record-section-heading {
+  align-items: center;
+}
+
+.student-record-evaluations
+.student-record-section-heading > .button {
+  flex: 0 0 auto;
+}
+
+.student-record-evaluations
+.student-record-section-heading > .button--primary {
+  border-color: var(--milal-green-600);
+  background: var(--milal-green-600);
+  color: var(--milal-white);
+}
+
+.student-record-evaluations
+.student-record-section-heading > .button--primary:hover:not(:disabled) {
+  border-color: var(--milal-green-700);
+  background: var(--milal-green-700);
+}
+
+.student-record-evaluations__stats {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.student-record-evaluations__form-card,
+.student-record-evaluations__list-card {
+  margin: 0 !important;
+  overflow: hidden;
+}
+
+.student-record-evaluations__form-card {
+  margin-bottom: 1rem !important;
+}
+
+.student-record-evaluations__form {
+  padding: 1rem 1.15rem 1.2rem;
+}
+
+.student-record-evaluations__message {
+  margin-bottom: 1rem;
+}
+
+
+@media (max-width: 720px) {
+  .student-record-evaluations
+  .student-record-section-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .student-record-evaluations
+  .student-record-section-heading > .button {
+    width: 100%;
+  }
+
+  .student-record-evaluations__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Unified record typography */
+
+.student-record-page,
+.student-record-page button,
+.student-record-page input,
+.student-record-page select,
+.student-record-page textarea {
+  font-family: inherit;
+}
+
+/* Academic and psychological */
+
+.student-record-academic,
+.student-record-psychological {
+  min-width: 0;
+}
+
+.student-record-academic__stats,
+.student-record-psychological__stats {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.student-record-academic__history-card,
+.student-record-psychological__history-card {
+  margin: 0 !important;
+  overflow: hidden;
+}
+
+.student-record-academic
+.student-record-section-heading,
+.student-record-psychological
+.student-record-section-heading {
+  align-items: center;
+}
+
+.student-record-academic
+.student-record-section-heading > .button--primary,
+.student-record-psychological
+.student-record-section-heading > .button--primary {
+  flex: 0 0 auto;
+  border-color: var(--milal-green-600);
+  background: var(--milal-green-600);
+  color: var(--milal-white);
+}
+
+.student-record-academic
+.student-record-section-heading > .button--primary:hover:not(:disabled),
+.student-record-psychological
+.student-record-section-heading > .button--primary:hover:not(:disabled) {
+  border-color: var(--milal-green-700);
+  background: var(--milal-green-700);
+}
+
+.student-record-psychological__message {
+  margin-bottom: 1rem;
+}
+
+
+@media (max-width: 720px) {
+  .student-record-academic__stats,
+  .student-record-psychological__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .student-record-academic
+  .student-record-section-heading,
+  .student-record-psychological
+  .student-record-section-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .student-record-academic
+  .student-record-section-heading > .button,
+  .student-record-psychological
+  .student-record-section-heading > .button {
+    width: 100%;
+  }
+}
+
+/* Section/card titles */
+
+.student-record-card__header h2,
+.student-record-card__header h3,
+.student-record-section-heading h2,
+.student-interventions__section h3 {
+  margin-top: 0;
+  color: var(--milal-navy-900);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+
+/* Section descriptions */
+
+.student-record-card__header p,
+.student-record-section-heading > div > p:last-child {
+  color: var(--milal-text-secondary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+
+/* Common content */
+
+.student-record-summary-card,
+.student-record-therapy,
+.student-record-evaluations,
+.student-interventions {
+  color: var(--milal-text-secondary);
+  font-family: inherit;
+  font-size: 0.82rem;
+}
+
+
+/* Common buttons */
+
+.student-record-page .button {
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+/* Evolution */
+
+.student-record-evolution {
+  min-width: 0;
+}
+
+.student-record-evolution__workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.student-record-evolution__card {
+  margin: 0 !important;
+  overflow: hidden;
+}
+
+/* AI support */
+
+.student-record-ai {
+  min-width: 0;
+}
+
+.student-record-ai__workspace {
+  margin: 0 !important;
+  padding: 1rem 1.15rem 1.2rem;
+  overflow: hidden;
+}

@@ -86,11 +86,6 @@ function StudentDocumentList({
             </p>
 
             <p>
-              <strong>Tipo MIME:</strong>{' '}
-              {documentItem.mime_type}
-            </p>
-
-            <p>
               <strong>Tamaño:</strong>{' '}
               {formatFileSize(
                 documentItem.size_bytes

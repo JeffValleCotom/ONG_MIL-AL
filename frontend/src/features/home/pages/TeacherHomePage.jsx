@@ -3,11 +3,13 @@ import StudentManagementPage
 
 
 function TeacherHomePage({
+  user,
   onLogout,
   onChangeSpace,
 }) {
   return (
     <StudentManagementPage
+      user={user}
       onLogout={onLogout}
       onChangeSpace={onChangeSpace}
       studentContext="DOCENTE"

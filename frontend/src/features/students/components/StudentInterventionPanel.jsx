@@ -1,12 +1,12 @@
 import { useState } from 'react'
 
 import {
-  createStudentIntervention,
-  updateStudentIntervention,
   createStudentInterventionPlan,
   updateStudentInterventionPlan,
   createStudentInterventionFollowUp,
 } from '../services/studentService'
+import AppModal
+  from '../../../components/ui/AppModal'
 
 import './StudentInterventionPanel.css'
 
@@ -110,11 +110,6 @@ function StudentInterventionPanel({
   ] = useState('')
 
   const [
-    editingPerformed,
-    setEditingPerformed,
-  ] = useState(null)
-
-  const [
     editingPlan,
     setEditingPlan,
   ] = useState(null)
@@ -135,15 +130,6 @@ function StudentInterventionPanel({
   ] = useState('')
 
   const [
-    performedForm,
-    setPerformedForm,
-  ] = useState({
-    intervention_date: todayValue(),
-    objectives: '',
-    observations: '',
-  })
-
-  const [
     planForm,
     setPlanForm,
   ] = useState({
@@ -159,6 +145,16 @@ function StudentInterventionPanel({
   ] = useState(null)
 
   const [
+    historyPlan,
+    setHistoryPlan,
+  ] = useState(null)
+
+  const [
+    detailIntervention,
+    setDetailIntervention,
+  ] = useState(null)
+
+  const [
     followUpForm,
     setFollowUpForm,
   ] = useState({
@@ -170,30 +166,9 @@ function StudentInterventionPanel({
   })
 
 
-  function openPerformedForm(intervention = null) {
-    setError('')
-    setSuccess('')
-    setEditingPlan(null)
-    setEditingPerformed(intervention)
-
-    setPerformedForm({
-      intervention_date:
-        intervention?.intervention_date
-        ?? todayValue(),
-      objectives:
-        intervention?.objectives ?? '',
-      observations:
-        intervention?.observations ?? '',
-    })
-
-    setActiveForm('performed')
-  }
-
-
   function openPlanForm(plan = null) {
     setError('')
     setSuccess('')
-    setEditingPerformed(null)
     setEditingPlan(plan)
 
     setPlanForm({
@@ -219,7 +194,6 @@ function StudentInterventionPanel({
     }
 
     setActiveForm('')
-    setEditingPerformed(null)
     setEditingPlan(null)
     setError('')
     setFollowUpPlan(null)
@@ -229,7 +203,6 @@ function StudentInterventionPanel({
     setError('')
     setSuccess('')
     setEditingPlan(null)
-    setEditingPerformed(null)
     setFollowUpPlan(plan)
 
     setFollowUpForm({
@@ -249,7 +222,6 @@ function StudentInterventionPanel({
 
   async function refreshAfterSave(message) {
     setActiveForm('')
-    setEditingPerformed(null)
     setEditingPlan(null)
     setSuccess(message)
     setFollowUpPlan(null)
@@ -258,51 +230,6 @@ function StudentInterventionPanel({
       await onChanged()
     }
   }
-
-
-  async function submitPerformed(event) {
-    event.preventDefault()
-
-    if (isSaving) {
-      return
-    }
-
-    setIsSaving(true)
-    setError('')
-    setSuccess('')
-
-    try {
-      if (editingPerformed) {
-        await updateStudentIntervention(
-          studentId,
-          editingPerformed.id,
-          performedForm,
-          context
-        )
-
-        await refreshAfterSave(
-          'Intervención actualizada correctamente.'
-        )
-      } else {
-        await createStudentIntervention(
-          studentId,
-          performedForm,
-          context
-        )
-
-        await refreshAfterSave(
-          'Intervención registrada correctamente.'
-        )
-      }
-    } catch (saveError) {
-      setError(
-        getErrorMessage(saveError)
-      )
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
 
   async function submitPlan(event) {
     event.preventDefault()
@@ -403,6 +330,16 @@ function StudentInterventionPanel({
     }
   }
 
+  const activePlans = planned.filter(
+    (plan) => (
+      plan.status === 'PLANNED'
+      || plan.status === 'IN_PROGRESS'
+    ),
+  )
+
+  const completedPlans = planned.filter(
+    (plan) => plan.status === 'COMPLETED',
+  )
 
   return (
     <div className="student-interventions">
@@ -424,36 +361,45 @@ function StudentInterventionPanel({
         </div>
       )}
 
-      {canManage && !activeForm && (
+      {canManage && (
         <div className="student-interventions__actions">
           <button
             className="button button--primary"
             type="button"
             onClick={() => openPlanForm()}
           >
-            Nueva planificación
-          </button>
-
-          <button
-            className="button button--secondary"
-            type="button"
-            onClick={() => openPerformedForm()}
-          >
-            Registrar intervención
+            + Nueva planificación
           </button>
         </div>
       )}
 
       {activeForm === 'plan' && (
-        <form
-          className="student-interventions__form"
-          onSubmit={submitPlan}
-        >
-          <h3>
-            {editingPlan
+        <AppModal
+          isOpen
+          title={
+            editingPlan
               ? 'Editar planificación'
-              : 'Nueva planificación'}
-          </h3>
+              : 'Nueva planificación'
+          }
+          subtitle={
+            editingPlan
+              ? (
+                  'Actualiza los objetivos, fechas y '
+                  + 'responsable de la planificación.'
+                )
+              : (
+                  'Define los objetivos, período y '
+                  + 'responsable de la intervención.'
+                )
+          }
+          onClose={cancelForm}
+          closeDisabled={isSaving}
+          size="md"
+        >
+          <form
+            className="student-interventions__form"
+            onSubmit={submitPlan}
+          >
 
           {error && (
             <div
@@ -574,112 +520,34 @@ function StudentInterventionPanel({
             </button>
           </div>
         </form>
-      )}
-
-      {activeForm === 'performed' && (
-        <form
-          className="student-interventions__form"
-          onSubmit={submitPerformed}
-        >
-          <h3>
-            {editingPerformed
-              ? 'Editar intervención'
-              : 'Registrar intervención'}
-          </h3>
-
-          {error && (
-            <div
-              className="form-message form-message--error"
-              role="alert"
-            >
-              {error}
-            </div>
-          )}
-
-          <label>
-            Fecha
-            <input
-              type="date"
-              required
-              value={
-                performedForm.intervention_date
-              }
-              onChange={(event) => {
-                setPerformedForm({
-                  ...performedForm,
-                  intervention_date:
-                    event.target.value,
-                })
-              }}
-            />
-          </label>
-
-          <label>
-            Objetivos
-            <textarea
-              required
-              value={performedForm.objectives}
-              onChange={(event) => {
-                setPerformedForm({
-                  ...performedForm,
-                  objectives:
-                    event.target.value,
-                })
-              }}
-            />
-          </label>
-
-          <label>
-            Observaciones
-            <textarea
-              required
-              value={performedForm.observations}
-              onChange={(event) => {
-                setPerformedForm({
-                  ...performedForm,
-                  observations:
-                    event.target.value,
-                })
-              }}
-            />
-          </label>
-
-          <div className="student-interventions__actions">
-            <button
-              className="button button--primary"
-              type="submit"
-              disabled={isSaving}
-            >
-              {isSaving
-                ? 'Guardando...'
-                : 'Guardar intervención'}
-            </button>
-
-            <button
-              className="button button--secondary"
-              type="button"
-              disabled={isSaving}
-              onClick={cancelForm}
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
+        </AppModal>
       )}
 
       {activeForm === 'followup' && followUpPlan && (
-        <form
-          className="student-interventions__form"
-          onSubmit={submitFollowUp}
+        <AppModal
+          isOpen
+          title="Registrar avance"
+          subtitle={
+            'Actualiza el progreso y estado de la '
+            + 'planificación seleccionada.'
+          }
+          onClose={cancelForm}
+          closeDisabled={isSaving}
+          size="md"
         >
-          <h3>Registrar seguimiento</h3>
+          <form
+            className="student-interventions__form"
+            onSubmit={submitFollowUp}
+          >
+            <div className="student-interventions__modal-context">
+              <span>
+                Objetivo de la intervención
+              </span>
 
-          <p>
-            Objetivo de la intervención:{' '}
-            <strong>
-              {followUpPlan.objectives}
-            </strong>
-          </p>
+              <strong>
+                {followUpPlan.objectives}
+              </strong>
+            </div>
 
           {error && (
             <div
@@ -815,183 +683,371 @@ function StudentInterventionPanel({
             </button>
           </div>
         </form>
+        </AppModal>
       )}
 
       <section className="student-interventions__section">
-        <h3>Intervenciones planificadas</h3>
+        <h3>Planificaciones activas</h3>
 
-        {planned.length === 0 ? (
+        {activePlans.length === 0 ? (
           <p className="student-interventions__empty">
             No hay intervenciones planificadas.
           </p>
         ) : (
           <div className="student-interventions__list">
-            {planned.map((plan) => (
+            {activePlans.map((plan) => (
               <article
-                className="student-interventions__item"
+                className={
+                  'student-interventions__item '
+                  + 'student-interventions__item--planned'
+                }
                 key={plan.id}
               >
-                <div>
-                  <strong>
-                    {STATUS_LABELS[plan.status]
-                      ?? plan.status}
-                  </strong>
+                <div className="student-interventions__item-main">
+                  <div className="student-interventions__item-topline">
+                    <span className="student-interventions__status">
+                      {STATUS_LABELS[plan.status]
+                        ?? plan.status}
+                    </span>
 
-                  <p>{plan.objectives}</p>
+                    <span className="student-interventions__dates">
+                      {formatDate(
+                        plan.estimated_start_date
+                      )}
 
-                  <small>
-                    {formatDate(
-                      plan.estimated_start_date
-                    )}
-                    {plan.estimated_end_date
-                      ? ` — ${formatDate(
-                        plan.estimated_end_date
-                      )}`
-                      : ''}
-                  </small>
+                      {plan.estimated_end_date
+                        ? (
+                            ` — ${formatDate(
+                              plan.estimated_end_date,
+                            )}`
+                          )
+                        : ''}
+                    </span>
+                  </div>
 
-                  <small>
+                  <p className="student-interventions__objective">
+                    {plan.objectives}
+                  </p>
+
+                  <p className="student-interventions__responsible">
                     Responsable:{' '}
-                    {professionalName(
-                      plan.responsible
-                    )}
-                  </small>
+                    <strong>
+                      {professionalName(
+                        plan.responsible
+                      )}
+                    </strong>
+                  </p>
                 </div>
 
-                {canManage && (
-                  <button
-                    className="button button--secondary"
-                    type="button"
-                    onClick={() => openPlanForm(plan)}
-                  >
-                    Editar
-                  </button>
-                )}
-
-                {canManage
-                  && (
-                    plan.status === 'PLANNED'
-                    || plan.status === 'IN_PROGRESS'
-                  ) && (
-                  <button
-                    className="button button--primary"
-                    type="button"
-                    onClick={() => openFollowUpForm(plan)}
-                  >
-                    Registrar avance
-                  </button>
-                )}
-
-                <div className="student-interventions__followups">
-                  <h4>Historial de seguimiento</h4>
-
-                  {(plan.followups ?? []).length === 0 ? (
-                    <p className="student-interventions__empty">
-                      Aún no se han registrado seguimientos.
-                    </p>
-                  ) : (
-                    <div className="student-interventions__followup-list">
-                      {plan.followups.map((followUp) => (
-                        <article
-                          key={followUp.id}
-                          className="student-interventions__followup"
-                        >
-                          <div className="student-interventions__followup-header">
-                            <strong>
-                              {formatDate(
-                                followUp.followup_date
-                              )}
-                            </strong>
-
-                            <span>
-                              {STATUS_LABELS[followUp.status]
-                                ?? followUp.status}
-                            </span>
-                          </div>
-
-                          <p>
-                            <b>Avances:</b>{' '}
-                            {followUp.progress}
-                          </p>
-
-                          <p>
-                            <b>Resultados:</b>{' '}
-                            {followUp.results}
-                          </p>
-
-                          <p>
-                            <b>Observaciones:</b>{' '}
-                            {followUp.observations}
-                          </p>
-
-                          <small>
-                            Registrado por:{' '}
-                            {professionalName(
-                              followUp.created_by
-                            )}
-                          </small>
-                        </article>
-                      ))}
-                    </div>
+                <div className="student-interventions__item-actions">
+                  {canManage && (
+                    <button
+                      className="button button--secondary"
+                      type="button"
+                      onClick={() => openPlanForm(plan)}
+                    >
+                      Editar
+                    </button>
                   )}
-                </div>
 
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+                  {canManage
+                    && (
+                      plan.status === 'PLANNED'
+                      || plan.status === 'IN_PROGRESS'
+                    ) && (
+                    <button
+                      className="button button--primary"
+                      type="button"
+                      onClick={() => openFollowUpForm(plan)}
+                    >
+                      Registrar avance
+                    </button>
+                  )}
 
-      <section className="student-interventions__section">
-        <h3>Intervenciones realizadas</h3>
-
-        {performed.length === 0 ? (
-          <p className="student-interventions__empty">
-            No hay intervenciones registradas.
-          </p>
-        ) : (
-          <div className="student-interventions__list">
-            {performed.map((intervention) => (
-              <article
-                className="student-interventions__item"
-                key={intervention.id}
-              >
-                <div>
-                  <strong>
-                    {formatDate(
-                      intervention.intervention_date
-                    )}
-                  </strong>
-
-                  <p>
-                    <b>Objetivos:</b>{' '}
-                    {intervention.objectives}
-                  </p>
-
-                  <p>
-                    <b>Observaciones:</b>{' '}
-                    {intervention.observations}
-                  </p>
-                </div>
-
-                {canManage && (
                   <button
                     className="button button--secondary"
                     type="button"
                     onClick={() => {
-                      openPerformedForm(
-                        intervention
-                      )
+                      setHistoryPlan(plan)
                     }}
                   >
-                    Editar
+                    Ver historial ({(plan.followups ?? []).length})
                   </button>
-                )}
+                </div>
               </article>
             ))}
           </div>
         )}
       </section>
+
+      <AppModal
+        isOpen={Boolean(historyPlan)}
+        title="Historial de seguimiento"
+        subtitle={
+          historyPlan
+            ? (
+                'Consulta los avances registrados para '
+                + 'esta planificación.'
+              )
+            : ''
+        }
+        onClose={() => {
+          setHistoryPlan(null)
+        }}
+        size="lg"
+      >
+        {historyPlan && (
+          <div className="student-interventions__history">
+            <div className="student-interventions__history-context">
+              <span>
+                Objetivo de la intervención
+              </span>
+
+              <strong>
+                {historyPlan.objectives}
+              </strong>
+
+              <small>
+                Responsable:{' '}
+                {professionalName(
+                  historyPlan.responsible
+                )}
+              </small>
+            </div>
+
+            {(historyPlan.followups ?? []).length === 0 ? (
+              <div className="student-interventions__history-empty">
+                <span aria-hidden="true">
+                  ○
+                </span>
+
+                <strong>
+                  Sin seguimientos registrados
+                </strong>
+
+                <p>
+                  Todavía no se han registrado avances
+                  para esta planificación.
+                </p>
+              </div>
+            ) : (
+              <div className="student-interventions__followup-list">
+                {historyPlan.followups.map((followUp) => (
+                  <article
+                    key={followUp.id}
+                    className="student-interventions__followup"
+                  >
+                    <div className="student-interventions__followup-header">
+                      <strong>
+                        {formatDate(
+                          followUp.followup_date,
+                        )}
+                      </strong>
+
+                      <span className="student-interventions__status">
+                        {STATUS_LABELS[followUp.status]
+                          ?? followUp.status}
+                      </span>
+                    </div>
+
+                    <dl className="student-interventions__followup-details">
+                      <div>
+                        <dt>Avances</dt>
+                        <dd>
+                          {followUp.progress}
+                        </dd>
+                      </div>
+
+                      <div>
+                        <dt>Resultados</dt>
+                        <dd>
+                          {followUp.results}
+                        </dd>
+                      </div>
+
+                      <div>
+                        <dt>Observaciones</dt>
+                        <dd>
+                          {followUp.observations}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <small>
+                      Registrado por:{' '}
+                      {professionalName(
+                        followUp.created_by
+                      )}
+                    </small>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </AppModal>
+
+      <section className="student-interventions__section">
+        <h3>Intervenciones realizadas</h3>
+
+        {completedPlans.length === 0
+          && performed.length === 0 ? (
+          <p className="student-interventions__empty">
+            No hay intervenciones completadas.
+          </p>
+        ) : (
+          <div className="student-interventions__list">
+            {completedPlans.map((plan) => (
+              <article
+                className={
+                  'student-interventions__item '
+                  + 'student-interventions__item--completed'
+                }
+                key={`completed-${plan.id}`}
+              >
+                <div className="student-interventions__item-main">
+                  <div className="student-interventions__item-topline">
+                    <span className="student-interventions__status">
+                      Completada
+                    </span>
+
+                    <span className="student-interventions__dates">
+                      {formatDate(
+                        plan.estimated_start_date,
+                      )}
+
+                      {plan.estimated_end_date
+                        ? (
+                            ` — ${formatDate(
+                              plan.estimated_end_date,
+                            )}`
+                          )
+                        : ''}
+                    </span>
+                  </div>
+
+                  <p className="student-interventions__objective">
+                    {plan.objectives}
+                  </p>
+
+                  <p className="student-interventions__responsible">
+                    Responsable:{' '}
+                    <strong>
+                      {professionalName(
+                        plan.responsible,
+                      )}
+                    </strong>
+                  </p>
+                </div>
+
+                <div className="student-interventions__item-actions">
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() => {
+                      setHistoryPlan(plan)
+                    }}
+                  >
+                    Ver historial (
+                    {(plan.followups ?? []).length}
+                    )
+                  </button>
+                </div>
+              </article>
+            ))}
+
+            {performed.map((intervention) => (
+              <article
+                className={
+                  'student-interventions__item '
+                  + 'student-interventions__item--legacy'
+                }
+                key={`performed-${intervention.id}`}
+              >
+                <div className="student-interventions__item-main">
+                  <div className="student-interventions__item-topline">
+                    <span className="student-interventions__status">
+                      Registro directo
+                    </span>
+
+                    <span className="student-interventions__dates">
+                      {formatDate(
+                        intervention.intervention_date,
+                      )}
+                    </span>
+                  </div>
+
+                  <p className="student-interventions__objective">
+                    {intervention.objectives}
+                  </p>
+
+                  <p className="student-interventions__responsible">
+                    Intervención registrada previamente
+                  </p>
+                </div>
+
+                <div className="student-interventions__item-actions">
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() => {
+                      setDetailIntervention(
+                        intervention,
+                      )
+                    }}
+                  >
+                    Ver detalle
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+      <AppModal
+        isOpen={Boolean(detailIntervention)}
+        title="Detalle de la intervención"
+        subtitle={
+          'Consulta la información histórica '
+          + 'de esta intervención.'
+        }
+        onClose={() => {
+          setDetailIntervention(null)
+        }}
+        size="md"
+      >
+        {detailIntervention && (
+          <div className="student-interventions__history">
+            <div className="student-interventions__history-context">
+              <span>
+                Fecha de intervención
+              </span>
+
+              <strong>
+                {formatDate(
+                  detailIntervention.intervention_date,
+                )}
+              </strong>
+            </div>
+
+            <dl className="student-interventions__followup-details">
+              <div>
+                <dt>Objetivos</dt>
+                <dd>
+                  {detailIntervention.objectives}
+                </dd>
+              </div>
+
+              <div>
+                <dt>Observaciones</dt>
+                <dd>
+                  {detailIntervention.observations || '—'}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        )}
+      </AppModal>
     </div>
   )
 }

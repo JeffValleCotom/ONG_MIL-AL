@@ -454,6 +454,7 @@ function ReportManagementPage({
   onBack,
   onLogout,
   onChangeSpace,
+  embedded = false,
 }) {
   const availableTypes =
     REPORT_TYPES_BY_CONTEXT[
@@ -746,6 +747,7 @@ function ReportManagementPage({
 
   return (
     <main className="reports-page">
+    {!embedded && (
       <header className="reports-page__header">
         <div>
           <p className="reports-page__eyebrow">
@@ -790,6 +792,19 @@ function ReportManagementPage({
           </button>
         </div>
       </header>
+    )}
+
+      {embedded && onBack && (
+        <div className="reports-page__local-actions">
+          <button
+            className="button button--secondary"
+            type="button"
+            onClick={onBack}
+          >
+            ← Volver a estudiantes
+          </button>
+        </div>
+      )}
 
       {success && (
         <div
