@@ -16,6 +16,12 @@ import StudentRecordPage
   from './StudentRecordPage'
 import ReportManagementPage
   from '../../reports/pages/ReportManagementPage'
+import DashboardPage
+  from '../../dashboard/pages/DashboardPage'
+import AlertManagementPage
+  from '../../alerts/pages/AlertManagementPage'
+import { getAlertSummary }
+  from '../../alerts/services/alertService'
 import {
   activateStudent,
   createStudent,
@@ -130,6 +136,12 @@ function StudentManagementPage({
     useState(null)
   const [showReports, setShowReports] =
     useState(false)
+  const [showDashboard, setShowDashboard] =
+    useState(false)
+  const [showAlerts, setShowAlerts] =
+    useState(false)
+  const [alertOpenCount, setAlertOpenCount] =
+    useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -166,6 +178,34 @@ function StudentManagementPage({
       isMounted = false
     }
   }, [filters, studentContext])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadAlertCount() {
+      try {
+        const data = await getAlertSummary(
+          studentContext
+        )
+
+        if (isMounted) {
+          setAlertOpenCount(
+            data?.open ?? 0
+          )
+        }
+      } catch {
+        if (isMounted) {
+          setAlertOpenCount(null)
+        }
+      }
+    }
+
+    loadAlertCount()
+
+    return () => {
+      isMounted = false
+    }
+  }, [studentContext])
 
   async function refreshStudents() {
     const data = await getStudents({
@@ -229,11 +269,13 @@ function StudentManagementPage({
   }
 
   function handleViewRecord(student) {
+    setShowReports(false)
+    setShowDashboard(false)
+    setShowAlerts(false)
     setRecordStudent(student)
     setActionError('')
     setSuccess('')
   }
-
 
   function handleRecordBack() {
     setRecordStudent(null)
@@ -377,10 +419,14 @@ function StudentManagementPage({
       icon: 'students',
       active:
         !showReports
+        && !showDashboard
+        && !showAlerts
         && !recordStudent,
       onClick: () => {
         setShowReports(false)
+        setShowDashboard(false)
         setRecordStudent(null)
+        setShowAlerts(false)
       },
     },
     {
@@ -389,11 +435,82 @@ function StudentManagementPage({
       icon: 'reports',
       active: showReports,
       onClick: () => {
+        setShowDashboard(false)
         setRecordStudent(null)
         setShowReports(true)
+        setShowAlerts(false)
+      },
+    },
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: 'dashboard',
+      active: showDashboard,
+      onClick: () => {
+        setShowReports(false)
+        setRecordStudent(null)
+        setShowDashboard(true)
+        setShowAlerts(false)
+      },
+    },
+    {
+      id: 'alerts',
+      label: 'Alertas',
+      icon: 'alerts',
+      badge: alertOpenCount,
+      active: showAlerts,
+      onClick: () => {
+        setShowReports(false)
+        setShowDashboard(false)
+        setRecordStudent(null)
+        setShowAlerts(true)
       },
     },
   ]
+
+    if (showAlerts) {
+      return (
+        <AppShell
+          title="Alertas"
+          subtitle={
+            'Notificaciones y seguimiento '
+            + 'de condiciones operativas'
+          }
+          user={user}
+          roleLabel={roleLabel}
+          navigationItems={navigationItems}
+          onChangeSpace={onChangeSpace}
+          onLogout={onLogout}
+        >
+          <AlertManagementPage
+            studentContext={studentContext}
+            onSummaryChange={setAlertOpenCount}
+            onOpenStudent={handleViewRecord}
+          />
+        </AppShell>
+      )
+    }
+
+    if (showDashboard) {
+      return (
+        <AppShell
+          title="Dashboard"
+          subtitle={
+            'Indicadores y evolución del '
+            + 'seguimiento estudiantil'
+          }
+          user={user}
+          roleLabel={roleLabel}
+          navigationItems={navigationItems}
+          onChangeSpace={onChangeSpace}
+          onLogout={onLogout}
+        >
+          <DashboardPage
+            studentContext={studentContext}
+          />
+        </AppShell>
+      )
+    }
 
     if (showReports) {
       return (
