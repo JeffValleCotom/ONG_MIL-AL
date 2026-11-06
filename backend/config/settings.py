@@ -110,6 +110,7 @@ INSTALLED_APPS = [
     "apps.evaluations.apps.EvaluationsConfig",
     "apps.reports.apps.ReportsConfig",
     "apps.dashboards.apps.DashboardsConfig",
+    "apps.alerts.apps.AlertsConfig",
 ]
 
 MIDDLEWARE = [
