@@ -1,0 +1,339 @@
+.dashboard-page {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.dashboard-eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--milal-green-700);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+
+/* Filter */
+
+.dashboard-filter-card,
+.dashboard-section {
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-lg);
+  background: var(--milal-white);
+  box-shadow: var(--milal-shadow-sm);
+}
+
+.dashboard-filter-card {
+  padding: 1rem 1.15rem;
+}
+
+.dashboard-filter-card__heading h2,
+.dashboard-section__heading h2 {
+  margin: 0;
+  color: var(--milal-navy-900);
+  font-size: 1rem;
+}
+
+.dashboard-filter-card__heading p:last-child,
+.dashboard-section__heading p:last-child {
+  margin: 0.3rem 0 0;
+  color: var(--milal-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.dashboard-filter {
+  display: grid;
+  grid-template-columns:
+    minmax(170px, 0.7fr)
+    minmax(170px, 0.7fr)
+    auto;
+  align-items: end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.dashboard-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.dashboard-field label {
+  color: var(--milal-navy-900);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.dashboard-field input {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-sm);
+  background: var(--milal-white);
+  color: var(--milal-text);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.dashboard-field input:focus {
+  border-color: var(--milal-green-400);
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgb(79 165 42 / 12%);
+}
+
+.dashboard-filter__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+
+/* Messages */
+
+.dashboard-message {
+  padding: 0.8rem 1rem;
+  border-radius: var(--milal-radius-sm);
+  font-size: 0.8rem;
+}
+
+.dashboard-message--error {
+  background: var(--milal-red-100);
+  color: var(--milal-red-700);
+}
+
+.dashboard-loading,
+.dashboard-empty {
+  padding: 2rem 1rem;
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-md);
+  background: var(--milal-white);
+  color: var(--milal-text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+
+/* Summary */
+
+.dashboard-summary {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.dashboard-stat {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--milal-border);
+  border-radius: var(--milal-radius-md);
+  background: var(--milal-white);
+}
+
+.dashboard-stat--primary {
+  border-color: var(--milal-green-200);
+  background: var(--milal-green-50);
+}
+
+.dashboard-stat--success {
+  border-color: var(--milal-green-200);
+}
+
+.dashboard-stat strong {
+  color: var(--milal-navy-900);
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.dashboard-stat span {
+  color: var(--milal-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.dashboard-stat small {
+  color: var(--milal-text-muted);
+  font-size: 0.68rem;
+}
+
+
+/* Sections */
+
+.dashboard-section {
+  overflow: hidden;
+}
+
+.dashboard-section__heading {
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--milal-border);
+}
+
+
+/* Indicators */
+
+.dashboard-indicators {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+}
+
+.dashboard-indicator {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.9rem;
+  border: 1px solid var(--milal-green-200);
+  border-radius: var(--milal-radius-md);
+  background: var(--milal-green-50);
+}
+
+.dashboard-indicator span {
+  color: var(--milal-text-secondary);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.dashboard-indicator strong {
+  color: var(--milal-green-800);
+  font-size: 1.4rem;
+}
+
+.dashboard-indicator small {
+  color: var(--milal-text-muted);
+  font-size: 0.67rem;
+}
+
+
+/* Interventions */
+
+.dashboard-interventions {
+  display: grid;
+  grid-template-columns:
+    repeat(6, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 1rem 1.15rem;
+}
+
+.dashboard-legacy-note {
+  margin: 0;
+  padding: 0 1.15rem 1rem;
+  color: var(--milal-text-muted);
+  font-size: 0.72rem;
+}
+
+
+/* Timeline */
+
+.dashboard-timeline {
+  display: grid;
+}
+
+.dashboard-period {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--milal-border);
+}
+
+.dashboard-period:last-child {
+  border-bottom: 0;
+}
+
+.dashboard-period__label {
+  color: var(--milal-navy-900);
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-transform: capitalize;
+}
+
+.dashboard-period__areas {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.dashboard-period__area {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.dashboard-period__area-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--milal-text-secondary);
+  font-size: 0.7rem;
+}
+
+.dashboard-period__area-label strong {
+  color: var(--milal-navy-900);
+}
+
+.dashboard-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--milal-radius-pill);
+  background: var(--milal-gray-100);
+}
+
+.dashboard-bar span {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: var(--milal-green-600);
+  transition:
+    width var(--milal-transition-fast);
+}
+
+
+/* Responsive */
+
+@media (max-width: 1100px) {
+  .dashboard-summary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-interventions {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+}
+
+
+@media (max-width: 720px) {
+  .dashboard-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-filter__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-filter__actions .milal-button {
+    width: 100%;
+  }
+
+  .dashboard-summary,
+  .dashboard-interventions {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-period {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-period__area {
+    grid-template-columns: 1fr;
+  }
+}

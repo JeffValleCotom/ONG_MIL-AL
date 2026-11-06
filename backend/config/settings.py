@@ -109,6 +109,7 @@ INSTALLED_APPS = [
     "apps.therapy.apps.TherapyConfig",
     "apps.evaluations.apps.EvaluationsConfig",
     "apps.reports.apps.ReportsConfig",
+    "apps.dashboards.apps.DashboardsConfig",
 ]
 
 MIDDLEWARE = [

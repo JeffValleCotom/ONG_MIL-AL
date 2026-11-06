@@ -16,6 +16,8 @@ import StudentRecordPage
   from './StudentRecordPage'
 import ReportManagementPage
   from '../../reports/pages/ReportManagementPage'
+import DashboardPage
+  from '../../dashboard/pages/DashboardPage'
 import {
   activateStudent,
   createStudent,
@@ -130,6 +132,8 @@ function StudentManagementPage({
     useState(null)
   const [showReports, setShowReports] =
     useState(false)
+  const [showDashboard, setShowDashboard] =
+    useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -229,6 +233,8 @@ function StudentManagementPage({
   }
 
   function handleViewRecord(student) {
+    setShowReports(false)
+    setShowDashboard(false)
     setRecordStudent(student)
     setActionError('')
     setSuccess('')
@@ -377,9 +383,11 @@ function StudentManagementPage({
       icon: 'students',
       active:
         !showReports
+        && !showDashboard
         && !recordStudent,
       onClick: () => {
         setShowReports(false)
+        setShowDashboard(false)
         setRecordStudent(null)
       },
     },
@@ -389,11 +397,44 @@ function StudentManagementPage({
       icon: 'reports',
       active: showReports,
       onClick: () => {
+        setShowDashboard(false)
         setRecordStudent(null)
         setShowReports(true)
       },
     },
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: 'dashboard',
+      active: showDashboard,
+      onClick: () => {
+        setShowReports(false)
+        setRecordStudent(null)
+        setShowDashboard(true)
+      },
+    },
   ]
+
+    if (showDashboard) {
+      return (
+        <AppShell
+          title="Dashboard"
+          subtitle={
+            'Indicadores y evolución del '
+            + 'seguimiento estudiantil'
+          }
+          user={user}
+          roleLabel={roleLabel}
+          navigationItems={navigationItems}
+          onChangeSpace={onChangeSpace}
+          onLogout={onLogout}
+        >
+          <DashboardPage
+            studentContext={studentContext}
+          />
+        </AppShell>
+      )
+    }
 
     if (showReports) {
       return (
