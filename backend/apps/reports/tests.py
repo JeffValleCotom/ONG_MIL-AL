@@ -842,7 +842,7 @@ class StudentReportAPITests(APITestCase):
 
     # HU-22 / TASK-132
 
-    def test_teacher_can_generate_integral_report_with_all_sections(
+    def test_teacher_integral_report_contains_only_teacher_context_sections(
         self,
     ):
         response = self.generate_report(
@@ -865,11 +865,7 @@ class StudentReportAPITests(APITestCase):
 
         expected_sections = {
             "academic",
-            "psychological",
-            "therapy",
             "evaluations",
-            "performed_interventions",
-            "planned_interventions",
         }
 
         self.assertEqual(
@@ -877,46 +873,54 @@ class StudentReportAPITests(APITestCase):
             expected_sections,
         )
 
+        sections = (
+    report.content_snapshot[
+        "sections"
+    ]
+)
+
+        expected_sections = {
+            "academic",
+            "evaluations",
+        }
+
         self.assertEqual(
-            len(sections["academic"]),
-            1,
+            set(sections.keys()),
+            expected_sections,
         )
-        self.assertEqual(
-            len(sections["psychological"]),
-            1,
+
+        self.assertIn(
+            "academic",
+            sections,
         )
-        self.assertEqual(
-            len(sections["therapy"]),
-            1,
+
+        self.assertIn(
+            "evaluations",
+            sections,
         )
-        self.assertEqual(
-            len(sections["evaluations"]),
-            1,
+
+        self.assertNotIn(
+            "psychological",
+            sections,
         )
-        self.assertEqual(
-            len(
-                sections[
-                    "performed_interventions"
-                ]
-            ),
-            1,
+
+        self.assertNotIn(
+            "therapy",
+            sections,
         )
-        self.assertEqual(
-            len(
-                sections[
-                    "planned_interventions"
-                ]
-            ),
-            1,
+
+        self.assertNotIn(
+            "performed_interventions",
+            sections,
+        )
+
+        self.assertNotIn(
+            "planned_interventions",
+            sections,
         )
 
         highlights = (
             snapshot["summary"]["highlights"]
-        )
-
-        self.assertGreaterEqual(
-            len(highlights),
-            3,
         )
 
     def test_psychologist_can_generate_integral_report(

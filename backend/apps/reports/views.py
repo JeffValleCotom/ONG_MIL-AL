@@ -184,6 +184,8 @@ class StudentReportViewSet(
         snapshot = build_report_snapshot(
             student=student,
             report_type=report_type,
+            generated_by=request.user,
+            generated_role=context,
             date_from=data.get("date_from"),
             date_to=data.get("date_to"),
         )

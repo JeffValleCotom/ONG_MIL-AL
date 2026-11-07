@@ -875,7 +875,9 @@ function ReportManagementPage({
                   key={type}
                   value={type}
                 >
-                  {REPORT_TYPE_LABELS[type]}
+                  {type === 'INTEGRAL'
+                    ? 'Todo (Integral)'
+                    : REPORT_TYPE_LABELS[type]}
                 </option>
               ))}
             </select>
