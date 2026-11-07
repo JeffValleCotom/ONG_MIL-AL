@@ -24,3 +24,5 @@ backend/private_media/
 Thumbs.db
 Desktop.ini
 
+/backend/staticfiles/
+/backend/frontend_dist/

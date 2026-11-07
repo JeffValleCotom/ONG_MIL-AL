@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIST_DIR = BASE_DIR / "frontend_dist"
 
 load_dotenv(BASE_DIR / ".env")
 
@@ -34,6 +35,16 @@ ALLOWED_HOSTS = [host.strip()
     if host.strip()
     ]
 
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "DJANGO_CSRF_TRUSTED_ORIGINS",
+        "",
+    ).split(",")
+    if origin.strip()
+]
+
+
 # Password recovery and email
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND",
@@ -43,6 +54,19 @@ EMAIL_BACKEND = os.getenv(
         else "django.core.mail.backends.dummy.EmailBackend"
     ),
 )
+
+EMAIL_HOST = os.getenv("EMAIL_HOST", "").strip()
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() == "true"
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() == "true"
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "30"))
+
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise RuntimeError(
+        "EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be enabled."
+    )
 
 DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL",
@@ -115,6 +139,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -123,12 +148,41 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+SECURE_PROXY_SSL_HEADER = (
+    "HTTP_X_FORWARDED_PROTO",
+    "https",
+)
+
+SECURE_SSL_REDIRECT = (
+    os.getenv(
+        "DJANGO_SECURE_SSL_REDIRECT",
+        "False",
+    ).lower()
+    == "true"
+)
+
+SESSION_COOKIE_SECURE = (
+    os.getenv(
+        "DJANGO_SESSION_COOKIE_SECURE",
+        "False",
+    ).lower()
+    == "true"
+)
+
+CSRF_COOKIE_SECURE = (
+    os.getenv(
+        "DJANGO_CSRF_COOKIE_SECURE",
+        "False",
+    ).lower()
+    == "true"
+)
+
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        "DIRS": [FRONTEND_DIST_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -146,35 +200,155 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DB_USER = os.getenv("DB_USER", "").strip()
-DB_PASSWORD = os.getenv("DB_PASSWORD", "").strip()
+DB_AUTH_MODE = os.getenv(
+    "DB_AUTH_MODE",
+    "windows",
+).strip().lower()
+
+DB_USER = os.getenv(
+    "DB_USER",
+    "",
+).strip()
+
+DB_PASSWORD = os.getenv(
+    "DB_PASSWORD",
+    "",
+).strip()
+
+DB_TRUST_SERVER_CERTIFICATE = os.getenv(
+    "DB_TRUST_SERVER_CERTIFICATE",
+    "yes",
+).strip().lower()
+
+DB_CONNECTION_TIMEOUT = int(
+    os.getenv(
+        "DB_CONNECTION_TIMEOUT",
+        "30",
+    )
+)
+
+DB_CONNECTION_RETRIES = int(
+    os.getenv(
+        "DB_CONNECTION_RETRIES",
+        "3",
+    )
+)
+
+DB_CONNECTION_RETRY_BACKOFF_TIME = int(
+    os.getenv(
+        "DB_CONNECTION_RETRY_BACKOFF_TIME",
+        "5",
+    )
+)
+
+DB_QUERY_TIMEOUT = int(
+    os.getenv(
+        "DB_QUERY_TIMEOUT",
+        "120",
+    )
+)
+
+DB_CONN_MAX_AGE = int(
+    os.getenv(
+        "DB_CONN_MAX_AGE",
+        "0",
+    )
+)
+
+DB_CONN_HEALTH_CHECKS = (
+    os.getenv(
+        "DB_CONN_HEALTH_CHECKS",
+        "True",
+    ).lower()
+    == "true"
+)
 
 DATABASE_CONFIG = {
     "ENGINE": "mssql",
     "NAME": os.environ["DB_NAME"],
     "HOST": os.environ["DB_HOST"],
-    "PORT": os.getenv("DB_PORT", ""),
-    "Trusted_Connection": os.getenv(
-        "DB_TRUSTED_CONNECTION",
-        "yes",
+    "PORT": os.getenv(
+        "DB_PORT",
+        "",
+    ),
+    "CONN_MAX_AGE": DB_CONN_MAX_AGE,
+    "CONN_HEALTH_CHECKS": (
+        DB_CONN_HEALTH_CHECKS
     ),
     "OPTIONS": {
         "driver": os.getenv(
             "DB_DRIVER",
             "ODBC Driver 18 for SQL Server",
         ),
-        "extra_params": (
-            "TrustServerCertificate="
-            f"{os.getenv('DB_TRUST_SERVER_CERTIFICATE', 'no')};"
+        "connection_timeout": (
+            DB_CONNECTION_TIMEOUT
+        ),
+        "connection_retries": (
+            DB_CONNECTION_RETRIES
+        ),
+        "connection_retry_backoff_time": (
+            DB_CONNECTION_RETRY_BACKOFF_TIME
+        ),
+        "query_timeout": (
+            DB_QUERY_TIMEOUT
         ),
     },
 }
 
-# En desarrollo local se utiliza autenticación integrada de Windows.
-# En otros ambientes se podrán proporcionar credenciales SQL.
-if DB_USER:
+if DB_AUTH_MODE == "windows":
+    DATABASE_CONFIG[
+        "Trusted_Connection"
+    ] = "yes"
+
+    DATABASE_CONFIG["OPTIONS"][
+        "extra_params"
+    ] = (
+        "TrustServerCertificate="
+        f"{DB_TRUST_SERVER_CERTIFICATE};"
+    )
+
+elif DB_AUTH_MODE == "sql":
+    if not DB_USER or not DB_PASSWORD:
+        raise RuntimeError(
+            "DB_USER y DB_PASSWORD son "
+            "obligatorios cuando "
+            "DB_AUTH_MODE=sql."
+        )
+
     DATABASE_CONFIG["USER"] = DB_USER
-    DATABASE_CONFIG["PASSWORD"] = DB_PASSWORD
+    DATABASE_CONFIG[
+        "PASSWORD"
+    ] = DB_PASSWORD
+
+    DATABASE_CONFIG[
+        "Trusted_Connection"
+    ] = "no"
+
+    DATABASE_CONFIG["OPTIONS"][
+        "extra_params"
+    ] = (
+        "Encrypt=yes;"
+        "TrustServerCertificate="
+        f"{DB_TRUST_SERVER_CERTIFICATE};"
+        "MultiSubnetFailover=Yes;"
+    )
+
+elif DB_AUTH_MODE == "managed_identity":
+    DATABASE_CONFIG["OPTIONS"][
+        "extra_params"
+    ] = (
+        "Authentication="
+        "ActiveDirectoryMsi;"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+        "MultiSubnetFailover=Yes;"
+    )
+
+else:
+    raise RuntimeError(
+        "DB_AUTH_MODE debe ser uno de: "
+        "windows, sql o managed_identity."
+    )
 
 DATABASES = {
     "default": DATABASE_CONFIG,
@@ -215,11 +389,55 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STATICFILES_DIRS = (
+    [FRONTEND_DIST_DIR]
+    if FRONTEND_DIST_DIR.exists()
+    else []
+)
 
 # Private uploaded documents.
 # These files are never exposed through a public MEDIA_URL.
 PRIVATE_MEDIA_ROOT = BASE_DIR / "private_media"
+
+# Private document storage.
+# Local development keeps using the filesystem.
+# Production can use a private Azure Blob container.
+AZURE_STORAGE_ENABLED = (
+    os.getenv(
+        "AZURE_STORAGE_ENABLED",
+        "False",
+    ).lower()
+    == "true"
+)
+
+AZURE_STORAGE_ACCOUNT_NAME = os.getenv(
+    "AZURE_STORAGE_ACCOUNT_NAME",
+    "",
+).strip()
+
+AZURE_STORAGE_PRIVATE_CONTAINER = os.getenv(
+    "AZURE_STORAGE_PRIVATE_CONTAINER",
+    "student-documents",
+).strip()
+
+AZURE_STORAGE_MAX_MEMORY_SIZE = int(
+    os.getenv(
+        "AZURE_STORAGE_MAX_MEMORY_SIZE",
+        str(5 * 1024 * 1024),
+    )
+)
+
+if (
+    AZURE_STORAGE_ENABLED
+    and not AZURE_STORAGE_ACCOUNT_NAME
+):
+    raise RuntimeError(
+        "AZURE_STORAGE_ACCOUNT_NAME es obligatorio "
+        "cuando AZURE_STORAGE_ENABLED=True."
+    )
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
